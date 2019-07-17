@@ -2,3 +2,4 @@
 *.idomaar
 *.xml
 *.iml
+preprocess/sparse_matrix.mtx
