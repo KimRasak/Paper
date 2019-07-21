@@ -1,5 +1,6 @@
-
+raw-data
 *.idomaar
 *.xml
 *.iml
-preprocess/sparse_matrix.mtx
+*.txt
+*.mtx

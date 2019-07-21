@@ -1,3 +1,4 @@
+# coding=utf-8
 import re
 import os
 import json
@@ -64,7 +65,7 @@ def read_file_tracks(file_path_tracks):
 
 # 读取user-item的交互数据
 # 其中，user的第一个编号为1，track的第一个编号为0，但此处不作额外处理。
-def read_file_events(file_path_events):
+def read_file_events_tuple(file_path_events):
     data = set()
     with open(file_path_events) as f:
         for line in f:
@@ -80,6 +81,59 @@ def read_file_events(file_path_events):
                 data.add((uid, tid))
     return data
 
+
+
+def read_file_events(file_path_events):
+    """
+    Read the user-item interactions data.
+    The first id of user is 1, but the first id of track is 0.
+    :param file_path_events: The path of events.idomaar
+    :return: The data, num of user, and num of track.
+    """
+    # key: A unique user id
+    # value: list. Containing all track ids that the user has interact with.
+    # e.g. { uid1: [tid1, tid2, ...], uid2: [...] }
+    data = dict()
+
+    read_count = 0
+    print_every_n_records = 100000
+    print("Print Message every %d records." % print_every_n_records)
+
+    max_uid = 0
+    max_tid = 0
+
+    with open(file_path_events) as f:
+        for line in f:
+            pattern = re.compile('{"subjects".+}]}')
+            match_result = re.findall(pattern, line)
+            play_event = match_result[0]
+
+            obj = json.loads(play_event)
+            uid = obj["subjects"][0]["id"]  # user id
+            tid = obj["objects"][0]["id"]  # track id
+
+            # Record the interaction.
+            if uid not in data:
+                data[uid] = []
+            uis = data[uid] # All track ids that the user has interacted with
+            if tid not in uis:
+                data[uid].append(tid)
+
+            # Print Message.
+            read_count += 1
+            if read_count % print_every_n_records == 0:
+                print("Having read %d records." % read_count)
+            if read_count == 1000:
+                return data, max_uid, max_tid + 1
+
+            # count user id/track id num.
+            max_uid = max(max_uid, uid)
+            max_tid = max(max_tid, tid)
+
+        print("There are %d records in all." % read_count)
+        print("There are %d users and %d tracks." % (max_uid, max_tid))
+        print("Read dataset comlete.")
+    return data, max_uid, max_tid + 1  # Note that the first track id is 0.
 
 # 查看每行里的user id是否都包含在ids里
 # ids提取自persons.idomaar或users.idomaar文件

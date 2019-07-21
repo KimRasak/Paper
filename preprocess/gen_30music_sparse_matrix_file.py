@@ -1,3 +1,4 @@
+# coding=utf-8
 import scipy as spy
 import scipy.sparse as sp
 import numpy as np
@@ -5,7 +6,7 @@ import preprocess.examine_30music_events as ex
 from scipy.io import mmwrite
 
 if __name__ == '__main__':
-    data = ex.read_file_events(ex.file_path_events)
+    data = ex.read_file_events_tuple(ex.file_path_events)
     row = []
     col = []
     value = []
@@ -17,6 +18,12 @@ if __name__ == '__main__':
 
     m = max(row) + 1
     n = max(col) + 1
+
+    print("value", value[:10])
+    print("row", row[:10])
+    print("col", col[:10])
+    print("m", m)
+    print("n", n)
 
     sparse_matrix = sp.csr_matrix((value, (row, col)), shape=(m, n))
     mtx_file_path = "./sparse_matrix.mtx"
