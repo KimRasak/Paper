@@ -8,7 +8,30 @@ import random
 
 import preprocess.examine_30music_events as ex
 
-def filter_and_compact(data: dict, min_ui_count = 10):
+def column_first_to_row_first(data_column_first: dict):
+    """
+    Change the data from column first to row first.
+    e.g. The column first data is like:
+    { tid1: [uid1, uid2, ...], tid2: [...] }
+    The row first data is like:
+    { uid1: [tid1, tid2, ...], uid2: [...] }
+    :param data_column_first: The column first data.
+    :return: The row first data.
+    """
+    data_row_first = dict()
+    for tid, uids in data_column_first.items():
+        for uid in uids:
+            if uid not in data_row_first:
+                data_row_first[uid] = []
+
+            tids = data_row_first[uid]
+            if tid not in tids:
+                data_row_first[uid].append(tid)
+
+    return data_row_first
+
+
+def filter_and_compact(data_column_first: dict, min_iu_count = 10, min_ui_count = 10):
     """
     Filter noise data out.
     Compact the user ids to make them continuous.
@@ -22,33 +45,58 @@ def filter_and_compact(data: dict, min_ui_count = 10):
     :return: Filtered data.
     Number of users.
     """
+    # Remove track ids with too few interactions.
+    print("track num before filter: ", len(data_column_first))
+    # The keys may not be accessed sequentially.
+    # That is, the keys may be accessed by 1, 6, 2, 10, ...
+    # instead of 0, 1, 2, 3, ...
+    # But that doesn't matter, you can say the track ids are re-indexed.
+    for tid in list(data_column_first.keys()):
+        uids = data_column_first[tid]
 
-    # Filter noise data.
-    print("user num before filter: ", len(data))
-    for uid in list(data.keys()):
-        tids = data[uid]
+        if len(uids) < min_iu_count:
+            data_column_first.pop(tid)
+    print("track num after filter: ", len(data_column_first))
+
+    # Compact the track ids
+    compact_column_data = dict()
+    for tid, (old_tid, uids) in enumerate(data_column_first.items()):
+        compact_column_data[tid] = uids
+
+    # Change to row first expression.
+    num_track = len(compact_column_data)
+    compact_column_data = column_first_to_row_first(compact_column_data)
+
+    # Remove user ids with too few interactions.
+    # The keys may not be accessed sequentially.
+    # But that doesn't matter.
+    print("user num before filter: ", len(compact_column_data))
+    for uid in list(compact_column_data.keys()):
+        tids = compact_column_data[uid]
 
         if len(tids) < min_ui_count:
-            data.pop(uid)
-    print("user num after filter: ", len(data))
+            compact_column_data.pop(uid)
+    print("user num after filter: ", len(compact_column_data))
 
     # Compact the user ids.
     compact_data = dict()
-    for uid, (old_uid, tids) in enumerate(data.items()):
+    for uid, (old_uid, tids) in enumerate(compact_column_data.items()):
         compact_data[uid] = tids
 
-    return compact_data, len(compact_data)
+    return compact_data, len(compact_data), num_track
+
 
 def split_train_test_dataset(data, num_user, num_track):
     """
     Split the dataset into train and test dataset.
-    Sample 1 interaction from each user from the dataset, to construct the test dataset.
+    For uach user, sample 1 interaction from its interactions to construct the test dataset.
     The remaining dataset is the train dataset.
     :param data: The dataset.
     :param num_user: Number of users.
     :param num_track: Number of tracks.
     :return: train_data, test_data
     """
+    print("Start spliting train/test dataset.")
     test_data = dict()
     for uid, tids in data.items():
         random_pick = random.sample(tids, 1)[0]
@@ -56,7 +104,16 @@ def split_train_test_dataset(data, num_user, num_track):
         test_data[uid] = random_pick
     return data, test_data
 
+
 def generate_negative_samples(data, num_track, num_negative_sample = 10):
+    """
+    Not used for now.
+    :param data:
+    :param num_track:
+    :param num_negative_sample:
+    :return:
+    """
+    print("Start generating negative samples.")
     tripled_data = dict()
     for uid, tids in data.items():
         for tid in tids:
@@ -126,13 +183,14 @@ def save_test_dataset(file_path, test_data):
 
 if __name__ == '__main__':
     # Read data.
-    data, num_user_before_filter, num_track = ex.read_file_events(ex.file_path_events)
+    data_column_first, num_user_before_filter, num_track_before_filter = ex.read_file_events_column_first(ex.file_path_events)
 
     # Filter users having too few interactions.
-    data, num_user = filter_and_compact(data, min_ui_count=20)
+    compact_data, num_user, num_track = filter_and_compact(data_column_first, min_ui_count=300, min_iu_count=10)
+    # min_ui_count~user_num 100~17000 350~9000
 
     # Split train/test dataset.
-    train_data, test_data = split_train_test_dataset(data, num_user, num_track)
+    train_data, test_data = split_train_test_dataset(compact_data, num_user, num_track)
 
     # Generate negative samples for each pair of user-track interaction.
     tripled_train_data = generate_negative_samples(train_data, num_track)
@@ -145,7 +203,7 @@ if __name__ == '__main__':
     save_test_dataset(test_data_path, test_data)
 
     interaction_data_path = "30music_interaction.mtx"
-    sparse_matrix = convert_to_sparse_matrix(data, num_user, num_track)
+    sparse_matrix = convert_to_sparse_matrix(compact_data, num_user, num_track)
     mmwrite(interaction_data_path, sparse_matrix)
 
     # Save train/test dataset.
@@ -161,11 +219,3 @@ if __name__ == '__main__':
     # matrix_file_path = "./sparse_matrix.mtx"
     # print("Writing the sparse matrix to file[%s]" % matrix_file_path)
     # mmwrite(matrix_file_path, sparse_matrix)
-
-# 以pair为单位切分训练/测试数据集
-
-# 为训练集的每个pair采样10个负样本，从而为每个二元组生成10个三元组
-
-# 保存测试集文件
-
-# 保存训练集文件

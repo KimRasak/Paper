@@ -130,5 +130,5 @@ class BPR():
                 if (result[[self.item_id_map[s] for s in random.sample(self.all_item , self.test_sample_size)]] > result[test[1]]).sum()+1 <= self.evaluation_at:
                     num_true += 1
 
-            print("epoch:%d , loss:%.2f , recall:%.2f"%(epoch , total_loss , num_true/len(self.testing_data)))
+            print("epoch:%d , loss:%f , recall:%.2f"%(epoch , total_loss , num_true/len(self.testing_data)))
             self.experiment.append([epoch , total_loss , num_true/len(self.testing_data)])
