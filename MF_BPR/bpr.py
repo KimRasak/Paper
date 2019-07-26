@@ -2,6 +2,35 @@ import tensorflow as tf
 import scipy.sparse as sp
 import numpy as np
 import sys
+import random
+
+
+def sample_negative_item(user_items, max_item_id):
+    """
+    Sample a negative item that the user hasn't interacted with.
+    :param user_items: Item ids that the user has interacted with.
+    :param max_item_id: max item id.
+    :return: Id of the negative item.
+    """
+    neg_item_id = random.randint(0, max_item_id)
+    while neg_item_id in user_items:
+        neg_item_id = random.randint(0, max_item_id)
+    return neg_item_id
+
+def sample_hundred_negative_items(user_items, max_item_id, test_tid):
+    neg_items = []
+    for _ in range(100):
+        neg_item = sample_negative_item(user_items, max_item_id)
+        while neg_item in user_items or \
+                neg_item in neg_items or \
+                neg_item == test_tid:
+            neg_item = sample_negative_item(user_items, max_item_id)
+
+        neg_items.append(neg_item)
+
+    return neg_items
+
+
 
 
 class BPR():
@@ -11,7 +40,7 @@ class BPR():
     """
 
     def __init__(self, train_data, test_data, interaction_data: sp.csr_matrix,
-                 n_epochs=100, batch_size=256, embedding_k=64, top_k=10, learning_rate=0.0001):
+                 n_epochs=100, batch_size=256, embedding_k=64, top_k=10, learning_rate=0.0001, use_model=True):
         """
         Init function.
         :param train_data: The train data.
@@ -44,12 +73,13 @@ class BPR():
         self.sess.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
 
-        # ckpt = tf.train.get_checkpoint_state('../cpkt/')  # checkpoint存在的目录
-        # if ckpt and ckpt.model_checkpoint_path:
-        #     self.saver.restore(self.sess, ckpt.model_checkpoint_path)  # 自动恢复model_checkpoint_path保存模型一般是最新
-        #     print("Model restored...")
-        # else:
-        #     print('No Model')
+        if use_model:
+            ckpt = tf.train.get_checkpoint_state('../cpkt/')  # checkpoint存在的目录
+            if ckpt and ckpt.model_checkpoint_path:
+                self.saver.restore(self.sess, ckpt.model_checkpoint_path)  # 自动恢复model_checkpoint_path保存模型一般是最新
+                print("Model restored...")
+            else:
+                print('No Model')
         return
 
     def build_model(self):
@@ -58,8 +88,9 @@ class BPR():
         self.X_pos_item = tf.placeholder(tf.int32, shape=(None, 1))
         self.X_neg_item = tf.placeholder(tf.int32, shape=(None, 1))
 
-        # An input for testing/predicting is only  the user id
-        self.X_predict = tf.placeholder(tf.int32, shape=(1))
+        # An input for testing/predicting is only the user id
+        self.X_user_predict = tf.placeholder(tf.int32, shape=(1), name="x_user_predict")
+        self.X_items_predict = tf.placeholder(tf.int32, shape=(None), name="x_items_predict")
 
         # Loss, optimizer definition for training.
         user_embedding = tf.Variable(tf.truncated_normal(shape=[self.num_user, self.embedding_k], mean=0.0, stddev=0.5))
@@ -72,13 +103,20 @@ class BPR():
         pos_score = tf.matmul(embed_user, embed_pos_item, transpose_b=True)
         neg_score = tf.matmul(embed_user, embed_neg_item, transpose_b=True)
 
-        self.loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(pos_score - neg_score)))
+        self.loss = tf.reduce_mean(-tf.log(tf.nn.sigmoid(pos_score - neg_score)))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
-        self.print_loss = tf.print("loss: ", self.loss, output_stream=sys.stdout)
+        # self.print_loss = tf.print("loss: ", self.loss, output_stream=sys.stdout)
 
         # Output for testing/predicting
-        predict_user_embed = tf.nn.embedding_lookup(user_embedding, self.X_predict)
-        self.predict = tf.matmul(predict_user_embed, item_embedding, transpose_b=True)
+        predict_user_embed = tf.nn.embedding_lookup(user_embedding, self.X_user_predict)
+        items_predict_embeddings = tf.nn.embedding_lookup(item_embedding, self.X_items_predict)
+        self.predict = tf.matmul(predict_user_embed, items_predict_embeddings, transpose_b=True)
+
+    def generate_samples(self):
+        for [uid, pos_tid] in self.train_data:
+            user_items = self.interaction_data.getrow(uid).indptr
+            neg_tid = sample_negative_item(user_items, self.num_item - 1)
+            yield uid, pos_tid, neg_tid
 
     def fit(self):
         self.outputs = []
@@ -92,38 +130,34 @@ class BPR():
 
             # Train in batch.
             batch_num = len(self.train_data) // self.batch_size
-            for i in range(0, len(self.train_data), self.batch_size):
-                # Get the batch.
-                start = i
-                end = min(i + self.batch_size, len(self.train_data) + 1)
-                data_batch = self.train_data[start:end]
+            uid_batch = []
+            pos_tid_batch = []
+            neg_tid_batch = []
+            for i, (uid, pos_tid, neg_tid) in enumerate(self.generate_samples()):
+                uid_batch.append(uid)
+                pos_tid_batch.append(pos_tid)
+                neg_tid_batch.append(neg_tid)
 
-                # Initialize batch input
-                uid_batch = []
-                tid_batch = []  # Positive track ids batch.
-                neg_batch = []  # Negative track ids batch.
+                if (i > 0 and (i + 1) % self.batch_size == 0) or i == len(self.train_data) - 1:
+                    batch_no = i // self.batch_size
 
-                # Append training batch input.
-                for traid in data_batch:
-                    uid_batch.append(traid[0])
-                    tid_batch.append(traid[1])
-                    neg_batch.append(traid[2])
+                    # Resize.
+                    uid_batch = np.array(uid_batch).reshape(-1, 1)
+                    pos_tid_batch = np.array(pos_tid_batch).reshape(-1, 1)
+                    neg_tid_batch = np.array(neg_tid_batch).reshape(-1, 1)
 
-                # Resize.
-                uid_batch = np.array(uid_batch).reshape(-1, 1)
-                tid_batch = np.array(tid_batch).reshape(-1, 1)
-                neg_batch = np.array(neg_batch).reshape(-1, 1)
+                    _, loss = self.sess.run([self.optimizer, self.loss],
+                                            feed_dict={self.X_user: uid_batch, self.X_pos_item: pos_tid_batch,
+                                                       self.X_neg_item: neg_tid_batch})
 
-                _, loss = self.sess.run([self.optimizer, self.loss, self.print_loss],
-                                        feed_dict={self.X_user: uid_batch, self.X_pos_item: tid_batch,
-                                                   self.X_neg_item: neg_batch}
-                                        )
-                batch_no = i // self.batch_size
-                total_loss += loss
-                if batch_no % 200 == 0:
-                    print("Epoch %d, batch %d/%d, loss %f" % (epoch,
-                                                                batch_no, batch_num,
-                                                                loss))
+                    total_loss += loss
+                    if batch_no % 200 == 0:
+                        print("Epoch %d, batch %d/%d, loss %f" % (epoch, batch_no, batch_num, loss))
+
+                    # Refresh the batch input.
+                    uid_batch = []
+                    pos_tid_batch = []
+                    neg_tid_batch = []
 
             # Test
             # Calculate the hr@k
@@ -132,21 +166,22 @@ class BPR():
                 # Rank the test item agains 100 unobserved items.
                 # Following《Signed Distance-based Deep Memory Recommender》and《Neural Collaborative Filtering》
 
-                # Predict possibilities for the user on each track.
-                result = self.sess.run(self.predict, feed_dict={self.X_predict: [uid]})
-                result: np.ndarray = result.reshape(-1)
+                # Predict possibilities for the user on the test track against 100 negative items.
+                user_items = self.interaction_data.getrow(uid).indptr
+                neg_tids = sample_hundred_negative_items(user_items, self.num_item - 1, tid)
 
-                # The interactions of the user.
-                uis = self.interaction_data.getrow(uid).indptr
-
-                # Recommend tracks that the user hasn't interacted.
-                result = np.delete(result, uis)
+                predict_tids = neg_tids
+                predict_tids.append(tid)
+                result = self.sess.run(self.predict, feed_dict={self.X_user_predict: [uid], self.X_items_predict: predict_tids})
+                result = result[0]
 
                 # Get tracks with largest values.
-                recommended_tids = np.argsort(result)[-self.top_k:]
+                recommended_indexes = np.argsort(result)[-self.top_k:]
 
                 # If tid hit the top-k recommendation.
-                if tid in recommended_tids:
+                assert len(predict_tids) == 101
+                # Note that 100 is the last index of predict_tids, and that element refers to the test id
+                if 100 in recommended_indexes:
                     num_hit += 1
             hr_k = num_hit / len(self.test_data)
             print("-----Epoch %d complete, total loss %f, hr@%d %f-----" % (epoch, total_loss, self.top_k, hr_k))

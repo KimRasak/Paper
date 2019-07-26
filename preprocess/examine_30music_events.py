@@ -87,7 +87,7 @@ def read_file_events(file_path_events):
     Read the user-item interactions data.
     The first id of user is 1, but the first id of track is 0.
     :param file_path_events: The path of events.idomaar
-    :return: The data, num of user, and num of track.
+    :return: The data, max user id, max track id.
     """
     # key: A unique user id
     # value: list. Containing all track ids that the user has interact with.
@@ -108,8 +108,8 @@ def read_file_events(file_path_events):
             play_event = match_result[0]
 
             obj = json.loads(play_event)
-            uid = obj["subjects"][0]["id"]  # user id
-            tid = obj["objects"][0]["id"]  # track id
+            uid = obj["subjects"][0]["id"] - 1 # User id. Note that user id starts with 1. We Make them start with 0.
+            tid = obj["objects"][0]["id"]  # Track id. Note that track id starts with 0.
 
             # Record the interaction.
             if uid not in data:
@@ -122,17 +122,18 @@ def read_file_events(file_path_events):
             read_count += 1
             if read_count % print_every_n_records == 0:
                 print("Having read %d records." % read_count)
-            if read_count == 1000:
-                return data, max_uid, max_tid + 1
 
             # count user id/track id num.
             max_uid = max(max_uid, uid)
             max_tid = max(max_tid, tid)
 
+            # if read_count == 30: debug
+            #     return data, max_uid, max_tid
+
         print("There are %d records in all." % read_count)
         print("There are %d users and %d tracks." % (max_uid, max_tid))
         print("Read dataset comlete.")
-    return data, max_uid, max_tid + 1  # Note that the first track id is 0.
+    return data, max_uid, max_tid  # Note that the first track id is 0.
 
 
 def read_file_events_column_first(file_path_events):
@@ -237,8 +238,8 @@ if __name__ == '__main__':
     # 查看events文件中相比users文件和tracks文件多出的id
     unexpected_uids, unexpected_tids = check_file_events(file_path_events, uids, tids)
 
-    # 【raw data】 (45175 * 5023108)
-    # 【论文数据】 (12336 * 276142)
+    # 【raw data】 (45175 users * 5023108 tracks)
+    # 【论文数据】 (12336 users * 276142 tracks)
 
 
 

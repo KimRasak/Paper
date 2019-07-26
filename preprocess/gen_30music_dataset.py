@@ -8,99 +8,152 @@ import random
 
 import preprocess.examine_30music_events as ex
 
-def column_first_to_row_first(data_column_first: dict):
+
+def transfer_row_column(data: dict):
     """
-    Change the data from column first to row first.
-    e.g. The column first data is like:
-    { tid1: [uid1, uid2, ...], tid2: [...] }
-    The row first data is like:
-    { uid1: [tid1, tid2, ...], uid2: [...] }
-    :param data_column_first: The column first data.
-    :return: The row first data.
+    The input data represents a sparse matrix,
+    and this function transfers the matrix.
+    e.g. If the data is {0: [0, 1, 2], 1: [0], 2: [1, 3]}
+    The output will be {0: [0, 1], 1: [0, 2], 2: [0], 3: [2]}
+    :param data: Dict, representing a sparse matrix.
+    :return: If the input is column first, it's converted to row first.
+    If the input is row first, it's converted to column first.
     """
-    data_row_first = dict()
-    for tid, uids in data_column_first.items():
-        for uid in uids:
-            if uid not in data_row_first:
-                data_row_first[uid] = []
+    data_converted = dict()
+    for row_index, col_indexes in data.items():
+        for col_index in col_indexes:
+            if col_index not in data_converted:
+                data_converted[col_index] = []
 
-            tids = data_row_first[uid]
-            if tid not in tids:
-                data_row_first[uid].append(tid)
+            row_indexes = data_converted[col_index]
+            if row_index not in row_indexes:
+                data_converted[col_index].append(row_index)
 
-    return data_row_first
+    return data_converted
 
 
-def filter_and_compact(data_column_first: dict, min_iu_count = 10, min_ui_count = 10):
+def filter_and_compact(data_uid: dict, min_iu_count=10, min_ui_count=10):
     """
-    Filter noise data out.
-    Compact the user ids to make them continuous.
-    :param data:
+    1. Filter the data(user or track) with too few interactions out.
+    2. Compact the user ids and track ids to make them continuous starting from 0.
+    We
+    :param data_uid:
     key: A unique user id
-    value: list. Containing all track ids that the user has interact with.
+    value: List. Containing ids of tracks that the user has interacted with
     e.g. { uid1: [tid1, tid2, ...], uid2: [...] }
-    :param min_ui_count: Let uis be the user interactions.
-    If count(uis) < min_ui_count, the user interactions are
+    The user/track ids may not be continuous, that is,
+    the first id may be 1, and the second id may be 3, but there's no id 2.
+    :param original_num_user: Original num of users.
+    :param original_num_track: Original num of tracks.
+    :param min_ui_count: Let uis be the user's interactions.
+    If count(uis) < min_ui_count, the user's interactions are
     too few, and the user should be filtered.
-    :return: Filtered data.
-    Number of users.
+    :param min_iu_count: Let ius be the track's interactions.
+    If count(ius) < min_iu_count, the track's interactions are
+    too few, and the track should be filtered.
+    :return: 1. Filtered data with continuous ids starting from 0.
+    2. Number of users.
+    3. Number of tracks.
+    """
+    filter_count = 1
+    old_num_user = len(data)
+    old_num_track = max([len(row) for row in data.values()])
+
+    data_filter, new_num_user, new_num_track, should_continue_filter = \
+        do_filter_and_compact(data_uid, old_num_user, old_num_track, min_ui_count, min_iu_count)
+
+    # Loop until every user/track meets the need(having at least min_ui_count/min_iu_count interactions.)
+    while should_continue_filter:
+        filter_count += 1
+        old_num_user = new_num_user
+        old_num_track = new_num_track
+
+        data_filter, new_num_user, new_num_track, should_continue_filter = \
+            do_filter_and_compact(data_filter, old_num_user, old_num_track, min_ui_count, min_iu_count)
+
+    print("Loop Filter %d times." % filter_count)
+    return data_filter, new_num_user, new_num_track
+
+
+def filter_and_compact_rows(data: dict, min_row_values):
+    """
+    1. Filter the rows with too few values.
+    2. Compact the row indexes to make them continuous.
+    In this scene, each row represents a user/track,
+    and each value in the value list represent a track/user that has interaction with it.
+    :param data: Dict. Representing the sparse matrix.
+    :param min_row_values: Minimum number of values that each row should have.
+    Rows with less than {min_row_values} values will be filtered.
+    :return: Filtered data with continuous row indexes.
     """
     # Remove track ids with too few interactions.
-    print("track num before filter: ", len(data_column_first))
-    # The keys may not be accessed sequentially.
-    # That is, the keys may be accessed by 1, 6, 2, 10, ...
-    # instead of 0, 1, 2, 3, ...
-    # But that doesn't matter, you can say the track ids are re-indexed.
-    for tid in list(data_column_first.keys()):
-        uids = data_column_first[tid]
+    for row_index in list(data.keys()):
+        values = data[row_index]
 
-        if len(uids) < min_iu_count:
-            data_column_first.pop(tid)
-    print("track num after filter: ", len(data_column_first))
+        if len(values) < min_row_values:
+            data.pop(row_index)
 
-    # Compact the track ids
-    compact_column_data = dict()
-    for tid, (old_tid, uids) in enumerate(data_column_first.items()):
-        compact_column_data[tid] = uids
+    # Compact the row indexes to make them continuous starting from 0.
+    # The order of row indexes may be shuffled, due to random access to original row indexes,
+    # but that doesn't matter, because the interaction relationships don't change.
+    compact_row_data = dict()
+    for row_index, (old_row_index, uids) in enumerate(data.items()):
+        compact_row_data[row_index] = uids
 
-    # Change to row first expression.
-    num_track = len(compact_column_data)
-    compact_column_data = column_first_to_row_first(compact_column_data)
-
-    # Remove user ids with too few interactions.
-    # The keys may not be accessed sequentially.
-    # But that doesn't matter.
-    print("user num before filter: ", len(compact_column_data))
-    for uid in list(compact_column_data.keys()):
-        tids = compact_column_data[uid]
-
-        if len(tids) < min_ui_count:
-            compact_column_data.pop(uid)
-    print("user num after filter: ", len(compact_column_data))
-
-    # Compact the user ids.
-    compact_data = dict()
-    for uid, (old_uid, tids) in enumerate(compact_column_data.items()):
-        compact_data[uid] = tids
-
-    return compact_data, len(compact_data), num_track
+    return compact_row_data
 
 
-def split_train_test_dataset(data, num_user, num_track):
+def do_filter_and_compact(data_uid: dict, old_num_user, old_num_track, min_ui_count = 10, min_iu_count = 10):
+    """
+    1. Filter the data(user or track) with too few interactions out.
+    2. Compact the user ids and track ids to make them continuous starting from 0.
+    :param data_uid:
+    key: A unique user id
+    value: List. Containing ids of tracks that the user has interacted with.
+    e.g. {uid1: [tid1, tid2, ...], uid2: [...] }
+    :param min_ui_count: Let uis be the user's interactions.
+    If count(uis) < min_ui_count, the user's interactions are
+    too few, and the user should be filtered.
+    :param min_iu_count: Let ius be the track's interactions.
+    If count(ius) < min_iu_count, the track's interactions are
+    too few, and the track should be filtered.
+    :return: 1. Filtered data with continuous ids starting from 0.
+    2. Number of users.
+    3. Number of tracks.
+    4. If this dataset should be filtered again.
+    """
+    # Filter out the users with too few interactions.
+    data_filter_uid = filter_and_compact_rows(data_uid, min_ui_count)
+    new_num_user = len(data_filter_uid)
+
+    # Transform the sparse matrix. Now the row indexes is track ids.
+    data_tid = transfer_row_column(data_filter_uid)
+
+    # Filter out the tracks with too few interactions.
+    data_filter_tid = filter_and_compact_rows(data_tid, min_iu_count)
+    new_num_track = len(data_filter_tid)
+
+    # The data has filtered user ids and track ids.
+    data_filter = transfer_row_column(data_filter_tid)
+
+    # If no user/track is filtered out, there is no need to filter the data again.
+    should_continue_filter = old_num_user != new_num_user or old_num_track != new_num_track
+    return data_filter, new_num_user, new_num_track, should_continue_filter
+
+
+def split_train_test_dataset(data):
     """
     Split the dataset into train and test dataset.
     For uach user, sample 1 interaction from its interactions to construct the test dataset.
     The remaining dataset is the train dataset.
     :param data: The dataset.
-    :param num_user: Number of users.
-    :param num_track: Number of tracks.
     :return: train_data, test_data
     """
     print("Start spliting train/test dataset.")
     test_data = dict()
     for uid, tids in data.items():
         random_pick = random.sample(tids, 1)[0]
-        tids.remove(random_pick)
+        tids.remove(random_pick)  # Remove the test item from train data.
         test_data[uid] = random_pick
     return data, test_data
 
@@ -169,10 +222,10 @@ def convert_to_sparse_matrix(data: dict, num_user, num_track):
 
 def save_train_dataset(file_path, train_data):
     with open(file_path, 'w') as f:
-        f.write("uid tid negative_sample\n")
-        for (uid, tid), negative_samples in train_data.items():
-            for neg in negative_samples:
-                f.write("%d %d %d\n" % (uid, tid, neg))
+        f.write("uid tid\n")
+        for uid, tids in train_data.items():
+            for tid in tids:
+                f.write("%d %d\n" % (uid, tid))
 
 def save_test_dataset(file_path, test_data):
     with open(file_path, 'w') as f:
@@ -183,39 +236,26 @@ def save_test_dataset(file_path, test_data):
 
 if __name__ == '__main__':
     # Read data.
-    data_column_first, num_user_before_filter, num_track_before_filter = ex.read_file_events_column_first(ex.file_path_events)
+    data, max_uid, max_tid = ex.read_file_events(ex.file_path_events)
+    # Filter users/tracks with too few interactions.
+    # while True:
+    #     min_ui_count = input("input min_ui_num")
+    #     min_iu_count = input("input min_iu_num")
+    #     filtered_data, num_user, num_track = filter_and_compact(data, min_ui_count=200, min_iu_count=10)
 
-    # Filter users having too few interactions.
-    compact_data, num_user, num_track = filter_and_compact(data_column_first, min_ui_count=300, min_iu_count=10)
-    # min_ui_count~user_num 100~17000 350~9000
+    # (100, 10)~(28342, 246118) (200, 10) ~ (16111, 202001)
+    filtered_data, num_user, num_track = filter_and_compact(data, min_ui_count=200, min_iu_count=10)
 
     # Split train/test dataset.
-    train_data, test_data = split_train_test_dataset(compact_data, num_user, num_track)
-
-    # Generate negative samples for each pair of user-track interaction.
-    tripled_train_data = generate_negative_samples(train_data, num_track)
+    train_data, test_data = split_train_test_dataset(filtered_data)
 
     # Save datasets.
     train_data_path = "30music_train.txt"
-    save_train_dataset(train_data_path, tripled_train_data)
+    save_train_dataset(train_data_path, train_data)
 
     test_data_path = "30music_test.txt"
     save_test_dataset(test_data_path, test_data)
 
     interaction_data_path = "30music_interaction.mtx"
-    sparse_matrix = convert_to_sparse_matrix(compact_data, num_user, num_track)
+    sparse_matrix = convert_to_sparse_matrix(filtered_data, num_user, num_track)
     mmwrite(interaction_data_path, sparse_matrix)
-
-    # Save train/test dataset.
-
-    # Convert to type of scipy sparse matrix.
-    # sparse_matrix = convert_to_sparse_matrix(data_filtered)
-
-
-    # data_tuple_set = ex.read_file_events_tuple(ex.file_path_events)
-    #
-    # sparse_matrix = convert_to_sparse_matrix(data_tuple_set)
-    #
-    # matrix_file_path = "./sparse_matrix.mtx"
-    # print("Writing the sparse matrix to file[%s]" % matrix_file_path)
-    # mmwrite(matrix_file_path, sparse_matrix)
