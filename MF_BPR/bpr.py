@@ -114,7 +114,7 @@ class BPR():
 
     def generate_samples(self):
         for [uid, pos_tid] in self.train_data:
-            user_items = self.interaction_data.getrow(uid).indptr
+            user_items = self.interaction_data.getrow(uid).indices
             neg_tid = sample_negative_item(user_items, self.num_item - 1)
             yield uid, pos_tid, neg_tid
 
@@ -167,7 +167,7 @@ class BPR():
                 # Following《Signed Distance-based Deep Memory Recommender》and《Neural Collaborative Filtering》
 
                 # Predict possibilities for the user on the test track against 100 negative items.
-                user_items = self.interaction_data.getrow(uid).indptr
+                user_items = self.interaction_data.getrow(uid).indices
                 neg_tids = sample_hundred_negative_items(user_items, self.num_item - 1, tid)
 
                 predict_tids = neg_tids

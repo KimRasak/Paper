@@ -48,7 +48,7 @@ if __name__ == '__main__':
     test_data_path = "../preprocess/30music_test.txt"
     test_data = read_pair_data(test_data_path)
 
-    interaction_data_path = "../preprocess/30music_interaction.mtx"
+    interaction_data_path = "../preprocess/30music_interaction_subset_min10x10_percent.mtx"
     interaction_data = read_interaction_data(interaction_data_path)
 
     print("There are %d interactions." % interaction_data.getnnz())

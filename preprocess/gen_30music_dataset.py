@@ -51,13 +51,13 @@ def filter_and_compact(data_uid: dict, min_iu_count=10, min_ui_count=10):
     :param min_iu_count: Let ius be the track's interactions.
     If count(ius) < min_iu_count, the track's interactions are
     too few, and the track should be filtered.
-    :return: 1. Filtered data with continuous ids starting from 0.
+    :return: 1. Dict. Filtered data with continuous ids starting from 0.
     2. Number of users.
     3. Number of tracks.
     """
     filter_count = 1
-    old_num_user = len(data)
-    old_num_track = max([len(row) for row in data.values()])
+    old_num_user = len(data_uid)
+    old_num_track = max([len(row) for row in data_uid.values()])
 
     data_filter, new_num_user, new_num_track, should_continue_filter = \
         do_filter_and_compact(data_uid, old_num_user, old_num_track, min_ui_count, min_iu_count)
@@ -209,9 +209,9 @@ def convert_to_sparse_matrix(data: dict, num_user, num_track):
     print("Convert to row, col and value completed.")
 
     # Print some data.
-    print("value of the first 10 records", value[:10])
-    print("row of the first 10 records", row[:10])
-    print("col of the first 10 records", col[:10])
+    # print("value of the first 10 records", value[:10])
+    # print("row of the first 10 records", row[:10])
+    # print("col of the first 10 records", col[:10])
     print("num of user", num_user)
     print("num of track", num_track)
 
@@ -233,6 +233,64 @@ def save_test_dataset(file_path, test_data):
         for uid, tid in test_data.items():
             f.write("%d %d\n" % (uid, tid))
 
+def check_dataset_distribution(data, save_file_path="dataset_30music_distribution"):
+    ui_distribution = {}
+    below_10 = 0
+    on_10_below_100 = 0
+    on_100_below_500 = 0
+    on_500_below_1000 = 0
+    on_1000 = 0
+
+    for uid, tids in data.items():
+        num_ui = len(tids)
+        index = num_ui // 10
+
+        if index not in ui_distribution:
+            ui_distribution[index] = 0
+
+        if num_ui <= 10:
+            below_10 += 1
+        elif num_ui > 10 and num_ui <= 100:
+            on_10_below_100 += 1
+        elif num_ui > 100 and num_ui <= 500:
+            on_100_below_500 += 1
+        elif num_ui > 500 and num_ui <= 1000:
+            on_500_below_1000 += 1
+        elif num_ui > 1000:
+            on_1000 += 1
+
+        ui_distribution[index] += 1
+
+    print("below on: \n%d %d %d %d %d" % (below_10, on_10_below_100, on_100_below_500,
+                                       on_500_below_1000, on_1000))
+    T_data = transfer_row_column(data)
+
+    iu_distribution = {}
+    for tid, uids in T_data.items():
+        num_iu = len(uids)
+        index = num_iu // 10
+
+        if index not in iu_distribution:
+            iu_distribution[index] = 0
+
+        iu_distribution[index] += 1
+
+    ui_indexes = np.sort(list(ui_distribution.keys()))
+    iu_indexes = np.sort(list(iu_distribution.keys()))
+
+    with open(save_file_path, 'w') as f:
+        f.write("ui_distribution\n")
+
+        for step in ui_indexes:
+            num = ui_distribution[step]
+            f.write("step:%d num:%d\n" % (step, num))
+        f.write("iu_distribution\n")
+
+        for step in iu_indexes:
+            num = iu_distribution[step]
+            f.write("%d %d\n" % (step, num))
+
+    return
 
 if __name__ == '__main__':
     # Read data.
@@ -244,18 +302,21 @@ if __name__ == '__main__':
     #     filtered_data, num_user, num_track = filter_and_compact(data, min_ui_count=200, min_iu_count=10)
 
     # (100, 10)~(28342, 246118) (200, 10) ~ (16111, 202001)
-    filtered_data, num_user, num_track = filter_and_compact(data, min_ui_count=200, min_iu_count=10)
+    check_dataset_distribution(data)
 
-    # Split train/test dataset.
-    train_data, test_data = split_train_test_dataset(filtered_data)
-
-    # Save datasets.
-    train_data_path = "30music_train.txt"
-    save_train_dataset(train_data_path, train_data)
-
-    test_data_path = "30music_test.txt"
-    save_test_dataset(test_data_path, test_data)
-
-    interaction_data_path = "30music_interaction.mtx"
-    sparse_matrix = convert_to_sparse_matrix(filtered_data, num_user, num_track)
-    mmwrite(interaction_data_path, sparse_matrix)
+    # filtered_data, num_user, num_track = filter_and_compact(data, min_ui_count=10, min_iu_count=10)
+    #
+    #
+    # # Split train/test dataset.
+    # train_data, test_data = split_train_test_dataset(filtered_data)
+    #
+    # # Save datasets.
+    # train_data_path = "30music_train.txt"
+    # save_train_dataset(train_data_path, train_data)
+    #
+    # test_data_path = "30music_test.txt"
+    # save_test_dataset(test_data_path, test_data)
+    #
+    # interaction_data_path = "30music_interaction.mtx"
+    # sparse_matrix = convert_to_sparse_matrix(filtered_data, num_user, num_track)
+    # mmwrite(interaction_data_path, sparse_matrix)

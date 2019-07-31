@@ -14,6 +14,7 @@ file_path_users = "../raw-data/30music/entities/users.idomaar"
 file_path_tracks = "../raw-data/30music/entities/tracks.idomaar"
 file_path_events = "../raw-data/30music/relations/events.idomaar"
 
+
 # 从persons.idomaar读取所有person id
 def read_file_persons(file_path_persons):
     pids = set()
@@ -29,6 +30,7 @@ def read_file_persons(file_path_persons):
                 raise Exception("Error! extracted string isn'preprocess number")
             pids.add(int(pid))
     return pids
+
 
 # 从users.idomaar读取所有user id
 def read_file_users(file_path_users):
@@ -46,6 +48,7 @@ def read_file_users(file_path_users):
             uids.add(int(uid))
     return uids
 
+
 # 从tracks.idomaar读取所有track id
 def read_file_tracks(file_path_tracks):
     tids = set()
@@ -61,25 +64,6 @@ def read_file_tracks(file_path_tracks):
                 raise Exception("Error! extracted string isn'preprocess number")
             tids.add(int(tid))
     return tids
-
-
-# 读取user-item的交互数据
-# 其中，user的第一个编号为1，track的第一个编号为0，但此处不作额外处理。
-def read_file_events_tuple(file_path_events):
-    data = set()
-    with open(file_path_events) as f:
-        for line in f:
-            pattern = re.compile('{"subjects".+}]}')
-            match_result = re.findall(pattern, line)
-            play_event = match_result[0]
-
-            obj = json.loads(play_event)
-            uid = obj["subjects"][0]["id"]  # user id
-            tid = obj["objects"][0]["id"]  # track id
-
-            if (uid, tid) not in data:
-                data.add((uid, tid))
-    return data
 
 
 def read_file_events(file_path_events):
@@ -189,6 +173,7 @@ def read_file_events_column_first(file_path_events):
         print("There are %d users and %d tracks." % (max_uid, max_tid))
         print("Read dataset comlete.")
     return data, max_uid + 1, max_tid + 1  # Note that the first track id is 0.
+
 
 # 查看每行里的user id是否都包含在ids里
 # ids提取自persons.idomaar或users.idomaar文件
