@@ -1,4 +1,3 @@
-from preprocess.gen_30music_dataset import *
 import tensorflow as tf
 import numpy as np
 
@@ -47,41 +46,59 @@ import numpy as np
 # for i, (a, b, c) in enumerate(gen_samples()):
 #     print(i, a, b, c)
 # i： 0， 1， 2， 3...
+#
+# import re
+# import json
+# playlist_info_pattern = re.compile('{"ID":.+?}')  # Containing Playlist info
+# line = 'playlist	381	1357156475	{"ID":10985280,"Title":"2012 m. "Radiocentro" Top 100","numtracks":66,"duration":13712}	{"subjects":[{"type":"user","id":43580}],"objects":[{"type":"track","id":2374504},{"type":"track","id":633023},{"type":"track","id":2205687},{"type":"track","id":2056701},{"type":"track","id":122518},{"type":"track","id":2733092},{"type":"track","id":2514711},{"type":"track","id":686532},{"type":"track","id":1736577},{"type":"track","id":3241885},{"type":"track","id":2026968},{"type":"track","id":2552800},{"type":"track","id":1203212},{"type":"track","id":1590256},{"type":"track","id":3618565},{"type":"track","id":568987},{"type":"track","id":1748173},{"type":"track","id":1047128},{"type":"track","id":2369248},{"type":"track","id":3830462},{"type":"track","id":3745106},{"type":"track","id":2108300},{"type":"track","id":3722051},{"type":"track","id":254917},{"type":"track","id":3755741},{"type":"track","id":2262949},{"type":"track","id":157377},{"type":"track","id":2965522},{"type":"track","id":2077722},{"type":"track","id":3618497},{"type":"track","id":2001013},{"type":"track","id":329291},{"type":"track","id":2061887},{"type":"track","id":1839570},{"type":"track","id":3087182},{"type":"track","id":281859},{"type":"track","id":1748143},{"type":"track","id":1439479},{"type":"track","id":74380},{"type":"track","id":2000939},{"type":"track","id":507542},{"type":"track","id":1162946},{"type":"track","id":3250318},{"type":"track","id":281865},{"type":"track","id":1534087},{"type":"track","id":2363712},{"type":"track","id":548909},{"type":"track","id":1999885},{"type":"track","id":2477501},{"type":"track","id":2680405},{"type":"track","id":1995264},{"type":"track","id":1080951},{"type":"track","id":1350447},{"type":"track","id":1202197},{"type":"track","id":1921162},{"type":"track","id":1969506},{"type":"track","id":2735049},{"type":"track","id":1629375},{"type":"track","id":3003704},{"type":"track","id":3150106},{"type":"track","id":2752874},{"type":"track","id":1203012},{"type":"track","id":3755554},{"type":"track","id":1688864},{"type":"track","id":2077594},{"type":"track","id":3763545}]}'
+# new_line = ""
+# for i, c in enumerate(line):
+#     if c == '"':
+#         if line[i-1] == '{' or line[i-1] == ',' or line[i-1] == ':' or line[i+1] == ':' or line[i+1] == ',':
+#             new_line += c
+#         else:
+#             new_line += '\\' + c
+#     else:
+#         new_line += c
 
-a = {2, 3}
-a.add(3)
+# playlist_info = json.loads(re.findall(playlist_info_pattern, new_line)[0])
+# print(playlist_info)
+#
+# line2 = ' playlist	4760	1246144347	{"ID":5234695,"Title":""sd,"}","","numtracks":2,"duration":564}	{"subjects":[{"type":"user","id":44558}],"objects":[{"type":"track","id":1973029},{"type":"track","id":1805266}]}'
+# t = ',"Title":"'
+# a = line2.find(t)
+# b = line2.find('{"subjects"')
+#
+# title_a_pattern = re.compile('"ID":\d+,"Title":"')
+# title_b_pattern = re.compile('","numtracks":\d+,"duration":\d+}')
+# st = re.search(title_a_pattern, line2).end()
+# ed = re.search(title_b_pattern, line2).start()
+#
+#
+# print("----")
+# print(line2[st:ed])
+# c = line2.find('","numtracks":')
+# print("---------")
+# print(line2[a + len(t):c])
+# print(re.findall(playlist_info_pattern, line2)[0])
+d = {2: {3, 4, 5}, 3: {4}}
+# for x, ys in d.items():
+#     for y in list(ys):
+#         if y == 4:
+#             ys.remove(y)
+#     if len(ys) == 0:
+#         del d[x]
+# print(d)
 
-import re
-import json
-playlist_info_pattern = re.compile('{"ID":.+?}')  # Containing Playlist info
-line = 'playlist	381	1357156475	{"ID":10985280,"Title":"2012 m. "Radiocentro" Top 100","numtracks":66,"duration":13712}	{"subjects":[{"type":"user","id":43580}],"objects":[{"type":"track","id":2374504},{"type":"track","id":633023},{"type":"track","id":2205687},{"type":"track","id":2056701},{"type":"track","id":122518},{"type":"track","id":2733092},{"type":"track","id":2514711},{"type":"track","id":686532},{"type":"track","id":1736577},{"type":"track","id":3241885},{"type":"track","id":2026968},{"type":"track","id":2552800},{"type":"track","id":1203212},{"type":"track","id":1590256},{"type":"track","id":3618565},{"type":"track","id":568987},{"type":"track","id":1748173},{"type":"track","id":1047128},{"type":"track","id":2369248},{"type":"track","id":3830462},{"type":"track","id":3745106},{"type":"track","id":2108300},{"type":"track","id":3722051},{"type":"track","id":254917},{"type":"track","id":3755741},{"type":"track","id":2262949},{"type":"track","id":157377},{"type":"track","id":2965522},{"type":"track","id":2077722},{"type":"track","id":3618497},{"type":"track","id":2001013},{"type":"track","id":329291},{"type":"track","id":2061887},{"type":"track","id":1839570},{"type":"track","id":3087182},{"type":"track","id":281859},{"type":"track","id":1748143},{"type":"track","id":1439479},{"type":"track","id":74380},{"type":"track","id":2000939},{"type":"track","id":507542},{"type":"track","id":1162946},{"type":"track","id":3250318},{"type":"track","id":281865},{"type":"track","id":1534087},{"type":"track","id":2363712},{"type":"track","id":548909},{"type":"track","id":1999885},{"type":"track","id":2477501},{"type":"track","id":2680405},{"type":"track","id":1995264},{"type":"track","id":1080951},{"type":"track","id":1350447},{"type":"track","id":1202197},{"type":"track","id":1921162},{"type":"track","id":1969506},{"type":"track","id":2735049},{"type":"track","id":1629375},{"type":"track","id":3003704},{"type":"track","id":3150106},{"type":"track","id":2752874},{"type":"track","id":1203012},{"type":"track","id":3755554},{"type":"track","id":1688864},{"type":"track","id":2077594},{"type":"track","id":3763545}]}'
-new_line = ""
-for i, c in enumerate(line):
-    if c == '"':
-        if line[i-1] == '{' or line[i-1] == ',' or line[i-1] == ':' or line[i+1] == ':' or line[i+1] == ',':
-            new_line += c
-        else:
-            new_line += '\\' + c
-    else:
-        new_line += c
+valid_tids = [4, 5]
+tids = d[2]
+d[2] = {tid for tid in tids if tid in valid_tids}
+print(d)
 
-playlist_info = json.loads(re.findall(playlist_info_pattern, new_line)[0])
-print(playlist_info)
-
-line2 = ' playlist	4760	1246144347	{"ID":5234695,"Title":""sd,"}","","numtracks":2,"duration":564}	{"subjects":[{"type":"user","id":44558}],"objects":[{"type":"track","id":1973029},{"type":"track","id":1805266}]}'
-t = ',"Title":"'
-a = line2.find(t)
-b = line2.find('{"subjects"')
-
-title_a_pattern = re.compile('"ID":\d+,"Title":"')
-title_b_pattern = re.compile('","numtracks":\d+,"duration":\d+}')
-st = re.search(title_a_pattern, line2).end()
-ed = re.search(title_b_pattern, line2).start()
-
-
-print("----")
-print(line2[st:ed])
-c = line2.find('","numtracks":')
-print("---------")
-print(line2[a + len(t):c])
-print(re.findall(playlist_info_pattern, line2)[0])
+import numpy as np
+import scipy.sparse as sp
+rowsum = [0, 1, 3, 4]
+d_inv = np.float_power(rowsum, -1).flatten()
+d_inv[np.isinf(d_inv)] = 0.
+d_mat_inv = sp.diags(d_inv)
+print(d_mat_inv)
