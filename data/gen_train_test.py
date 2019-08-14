@@ -11,6 +11,11 @@ import numpy as np
 
 
 def read_playlist(filepath):
+    """
+    Read playlist data from file. All ids in the file must be continuous starting from 0.
+    :param filepath: Playlist file path.
+    :return:
+    """
     data = dict()
     max_uid = 0
     max_pid = 0
@@ -71,9 +76,12 @@ def split_train_test(playlist_data: dict, train_filepath, test_filepath, num_use
             test_data[uid] = {}
 
         for pid, tids in user.items():
-            num_train = int(len(tids) * proportion)
-            train_tids = np.random.choice(tids, num_train)
+            # num_test = max(int(len(tids) * (1 - proportion)), 1)
+            num_test = 1
+            num_train = len(tids) - num_test
+            train_tids = np.random.choice(tids, num_train, replace=False)
             test_tids = [tid for tid in tids if tid not in train_tids]
+
 
             train_data[uid][pid] = train_tids
             test_data[uid][pid] = test_tids

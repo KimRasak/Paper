@@ -255,7 +255,6 @@ def save_data(playlist_data: dict, event_data: dict, p_filepath="../data/30music
                     f.write("%d " % tid)
                 f.write("\n")
 
-
     with open(e_filepath, 'w') as f:
         f.write("user_id track_ids\n")
         for uid, tids in event_data.items():
