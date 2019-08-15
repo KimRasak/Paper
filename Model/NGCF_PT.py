@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from time import time
 from Model.ModelPT import ModelPT
 from Model.utility.data_helper import Data
 
@@ -39,6 +40,7 @@ class NGCF_PT(ModelPT):
         self.t_eb_pos_item = embed_pos_item
         self.t_eb_neg_item = embed_neg_item
 
+        # Get embeddings loss.
         self.t_embed_loss = tf.nn.l2_loss(ebs_list[0])
         for ebs in ebs_list[1:]:
             e_loss = tf.nn.l2_loss(ebs)
@@ -70,6 +72,7 @@ class NGCF_PT(ModelPT):
         return tf.reshape(embed, [embed.shape[0], embed.shape[-1]])
 
     def train_batch(self, batch):
+        t1 = time()
         for key, batch_value in batch.items():
             batch[key] = np.array(batch_value).reshape(-1, 1)
         opt, temp, loss, mf_loss, reg_loss, pos_score, neg_score, eb_p, eb_pos, eb_neg = self.sess.run([self.t_opt, self.t_temp, self.t_loss,
@@ -79,6 +82,7 @@ class NGCF_PT(ModelPT):
             self.X_pos_item: batch["pos_tracks"],
             self.X_neg_item: batch["neg_tracks"]
         })
+        batch_time = time() - t1
 
         return {
             "loss": loss,
@@ -86,5 +90,6 @@ class NGCF_PT(ModelPT):
             "mf_loss": mf_loss,
             "reg_loss": reg_loss,
             "pos_score": neg_score,
-            "neg_score": neg_score
+            "neg_score": neg_score,
+            "batch_time": batch_time
         }

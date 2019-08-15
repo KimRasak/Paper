@@ -1,5 +1,7 @@
 import os
 from abc import ABCMeta, abstractmethod
+from time import time
+
 import tensorflow as tf
 import numpy as np
 from Model.utility.data_helper import Data
@@ -61,8 +63,8 @@ class BaseModel(metaclass=ABCMeta):
         self.global_init()
         for i_epoch in range(self.num_epoch):
             self.epoch_init()
-            self.train_epoch(i_epoch)
             self.test(i_epoch)
+            self.train_epoch(i_epoch)
             self.save_model(i_epoch)
         self.save_output()
 
@@ -108,6 +110,7 @@ class BaseModel(metaclass=ABCMeta):
 
     def test(self, i_epoch):
         hr_10s = []
+        t1 = time()
         for uid, user in self.data.test_set.items():
             for pid, tids in user.items():
                 for tid in tids:
@@ -117,7 +120,8 @@ class BaseModel(metaclass=ABCMeta):
 
                     predicts = self.test_predict(uid, pid, input_tids)
                     hr_10s.append(hr_k(predicts, 10, 0))
-        output_str = "Epoch %d complete. hr_10: %f" % (i_epoch, np.average(hr_10s))
+        test_time = time() - t1
+        output_str = "Epoch %d complete. Used %d seconds, hr_10: %f" % (i_epoch, test_time, np.average(hr_10s))
         self.print_and_append_record(output_str)
 
     @abstractmethod
@@ -149,6 +153,9 @@ class BaseModel(metaclass=ABCMeta):
                 self.total_loss[result_key] += result_value
             output_str += "%s: %r " % (result_key, result_value)
 
+        if "batch_time" in result:
+            print("Batch session used %d seconds." % result["batch_time"])
+
         self.print_and_append_record(output_str)
 
     def epoch_init(self):
@@ -171,8 +178,8 @@ class BaseModel(metaclass=ABCMeta):
         if num_weight not in [2, 4]:
             raise Exception("Wrong number of layer weight.")
         if num_weight == 2:
-            W1 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.2))
-            W2 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.2))
+            W1 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+            W2 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
             aggregate = tf.matmul(tf.sparse_tensor_dense_matmul(self.data.LI, embeddings), W1) + tf.matmul(tf.multiply(tf.sparse_tensor_dense_matmul(self.data.L, embeddings), embeddings), W2)
 
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2)

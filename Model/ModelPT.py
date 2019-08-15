@@ -1,3 +1,5 @@
+from time import time
+
 import numpy as np
 from Model.BaseModel import BaseModel
 
@@ -5,7 +7,10 @@ from Model.BaseModel import BaseModel
 # Model Trained of playlist-track data.
 class ModelPT(BaseModel):
     def next_batch(self, i_batch: int) -> dict:
-        return self.data.next_batch_pt()
+        t1 = time()
+        batch = self.data.next_batch_pt()
+        print("Read next batch used %d seconds." % (time() - t1))
+        return batch
 
     def test_predict(self, uid, pid, tids):
         predicts = self.sess.run(self.t_predict, feed_dict={
