@@ -7,9 +7,7 @@ from Model.BaseModel import BaseModel
 # Model Trained of playlist-track data.
 class ModelPT(BaseModel):
     def next_batch(self, i_batch: int) -> dict:
-        t1 = time()
         batch = self.data.next_batch_pt()
-        print("Read next batch used %d seconds." % (time() - t1))
         return batch
 
     def test_predict(self, uid, pid, tids):

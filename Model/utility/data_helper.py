@@ -174,7 +174,7 @@ class Data():
         print("Used %d seconds. Have read test set." % (time() - t_test_set))
 
         self.n_train = self.R_pt.getnnz()
-        self.n_batch = int(np.ceil(self.n_train / self.batch_size))
+        self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * 32
 
         laplacian_modes = ["PT", "UT", "UPT", "None"]
         if laplacian_mode not in laplacian_modes:
@@ -183,19 +183,33 @@ class Data():
         self.laplacian_mode = laplacian_mode
         if laplacian_mode == "PT":
             self.A: sp.spmatrix = get_A_2(self.R_pt)  # (n * l)
+
             self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (n+l * n+l)
+            self.L_p = self.L[:self.n_playlist, :]
+            self.L_t = self.L[self.n_playlist, :]
+
             self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
             self.LI_p = self.LI[:self.n_playlist, :]
             self.LI_t = self.LI[self.n_playlist:, :]
         elif laplacian_mode == "UT":
             self.A: sp.spmatrix = get_A_2(self.R_ut)  # (m * n)
+
             self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (m+n * m+n)
+            self.L_u = self.L[:self.n_user, :]
+            self.L_t = self.L[self.n_user, :]
+
+
             self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
             self.LI_u = self.LI[:self.n_user, :]
             self.LI_t = self.LI[self.n_user:, :]
         elif laplacian_mode == "UPT":
             self.A: sp.spmatrix = get_A_3(self.R_up, self.R_ut, self.R_pt)  # (m+n+l * m+n+l)
+
             self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (m+n+l * m+n+l)
+            self.L_u = self.L[:self.n_user, :]
+            self.L_p = self.L[self.n_user:self.n_user+self.n_playlist, :]
+            self.L_t = self.L[self.n_user+self.n_playlist:, :]
+
             self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
             self.LI_u = self.LI[:self.n_user, :]
             self.LI_p = self.LI[self.n_user:self.n_user+self.n_playlist, :]
@@ -244,7 +258,23 @@ class Data():
         return batch
 
     def next_batch_upt(self):
-        pass
+        batch = {
+            "users":  [np.random.randint(0, self.n_user) for _ in range(self.batch_size)],
+            "playlists": [],
+            "pos_tracks": [],
+            "neg_tracks": []
+        }
+
+        for user in batch["users"]:
+            playlist = np.random.choice(self.up[user], 1)[0]
+            pos_track = sample_pos_track_for_playlist(playlist, self.pt)
+            neg_track = sample_neg_track_for_playlist(playlist, self.pt, self.n_track)
+
+            batch["playlists"].append(playlist)
+            batch["pos_tracks"].append(pos_track)
+            batch["neg_tracks"].append(neg_track)
+
+        return batch
 
     def sample_negative_item(self, observed_tids):
         neg_tid = np.random.randint(0, self.n_track)

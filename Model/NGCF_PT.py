@@ -4,7 +4,11 @@ from time import time
 from Model.ModelPT import ModelPT
 from Model.utility.data_helper import Data
 
-
+"""
+Neural Graph Collaborative Filtering on playlist-track recommendation.
+NGCF_PT only uses playlist and track embeddings to model the recommendation, 
+but may train user, playlist, track embeddings. (depending on the implementation)  
+"""
 class NGCF_PT(ModelPT):
     def __init__(self, num_epoch, data: Data):
         super().__init__(num_epoch, data)
@@ -29,7 +33,7 @@ class NGCF_PT(ModelPT):
         self.X_items_predict = tf.placeholder(tf.int32, shape=(101), name="x_items_predict")
 
         # Loss, optimizer definition for training.
-        ebs0 = tf.Variable(tf.truncated_normal(shape=[self.data.n_playlist + self.data.n_track, self.embedding_size], mean=0.0, stddev=0.5))
+        ebs0 = self.get_init_embeddings()
         ebs1, ebs2, ebs3 = self.build_graph_layers(ebs0)
         ebs_list = [ebs0, ebs1, ebs2, ebs3]
 

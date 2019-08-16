@@ -21,7 +21,7 @@ def convert_sp_mat_to_sp_tensor(X):
 
 class BaseModel(metaclass=ABCMeta):
     def __init__(self, num_epoch, data: Data, output_path="../output.txt",
-                 n_save_batch_loss=100, embedding_size=64, learning_rate=0.001, reg_rate=1e-5):
+                 n_save_batch_loss=100, embedding_size=64, learning_rate=0.001, reg_rate=5*1e-6):
         self.num_epoch = num_epoch
         self.data = data
         self.output_path = output_path
@@ -40,24 +40,33 @@ class BaseModel(metaclass=ABCMeta):
     def build_model(self):
         laplacian_mode = self.data.laplacian_mode
         if laplacian_mode == "PT":
-            self.data.A = convert_sp_mat_to_sp_tensor(self.data.A)  # (n * l)
-            self.data.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (n+l * n+l)
-            self.data.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # A + I. where I is the identity matrix.
-            self.data.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
-            self.data.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
+            self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (n+l * n+l)
+            self.L_p = convert_sp_mat_to_sp_tensor(self.data.L_p)
+            self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
+
+            print("data.L: shape", self.L.shape)
+            # self.LI = self.L + tf.eye(self.L.shape[0])  # L + I. where I is the identity matrix.
+            self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
+            self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
+
         elif laplacian_mode == "UT":
-            self.data.A = convert_sp_mat_to_sp_tensor(self.data.A)  # (m * n)
-            self.data.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (m+n * m+n)
-            self.data.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # A + I. where I is the identity matrix.
-            self.data.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
-            self.data.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
+            self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (m+n * m+n)
+            self.L_u = convert_sp_mat_to_sp_tensor(self.data.L_u)
+            self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
+
+            # self.LI = self.L + tf.eye(self.L.shape[0])  # L + I. where I is the identity matrix.
+            self.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
+            self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
         elif laplacian_mode == "UPT":
-            self.data.A = convert_sp_mat_to_sp_tensor(self.data.L)  # (m+n+l * m+n+l)
-            self.data.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (m+n+l * m+n+l)
-            self.data.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # A + I. where I is the identity matrix.
-            self.data.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
-            self.data.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
-            self.data.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
+            # self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (m+n+l * m+n+l)
+            self.L_u = convert_sp_mat_to_sp_tensor(self.data.L_u)
+            self.L_p = convert_sp_mat_to_sp_tensor(self.data.L_p)
+            self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
+
+            # self.LI = self.L + tf.eye(self.L.shape[0])  # L + I. where I is the identity matrix.
+            self.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
+            self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
+            self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
 
     def fit(self):
         self.global_init()
@@ -172,26 +181,64 @@ class BaseModel(metaclass=ABCMeta):
         output_str += "\n"
         self.output.append(output_str)
 
+    @abstractmethod
+    def get_init_embeddings(self):
+        pass
+
     # graph_PT
-    def build_graph_PT(self, embeddings, eb_size1, eb_size2, num_weight=2):
+    def build_graph_PT(self, embeddings: tf.Tensor, eb_size1, eb_size2, num_weight=2):
         assert self.data.laplacian_mode == "PT"
         if num_weight not in [2, 4]:
             raise Exception("Wrong number of layer weight.")
         if num_weight == 2:
             W1 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
             W2 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-            aggregate = tf.matmul(tf.sparse_tensor_dense_matmul(self.data.LI, embeddings), W1) + tf.matmul(tf.multiply(tf.sparse_tensor_dense_matmul(self.data.L, embeddings), embeddings), W2)
+            aggregate = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI, embeddings), W1) + \
+                        tf.matmul(tf.multiply(tf.sparse_tensor_dense_matmul(self.L, embeddings), embeddings), W2)
 
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2)
             self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
             new_embeddings = tf.nn.leaky_relu(aggregate)
         else:
-            new_embeddings = None
+            W1 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+            W2 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+            W3 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+            W4 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+
+            aggregate1 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_p, embeddings), W1) + tf.matmul(
+                tf.multiply(tf.sparse_tensor_dense_matmul(self.L_p, embeddings), embeddings[:self.data.n_playlist, :]), W2)
+            aggregate2 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_t, embeddings), W3) + tf.matmul(
+                tf.multiply(tf.sparse_tensor_dense_matmul(self.L_t, embeddings), embeddings[self.data.n_playlist:, :]), W4)
+
+            w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4)
+            self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
+            new_embeddings = tf.nn.leaky_relu(tf.concat([aggregate1, aggregate2], axis=0))
+            print(new_embeddings)
 
         return new_embeddings
 
     # graph_UT
 
     # graph_UPT
+    def build_graph_UPT(self, embeddings, eb_size1, eb_size2):
+        W1 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+        W2 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+        W3 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+        W4 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+        W5 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+        W6 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+
+        aggregate1 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_u, embeddings), W1) + tf.matmul(
+            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_u, embeddings), embeddings[:self.data.n_user]), W2)
+        aggregate2 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_p, embeddings), W3) + tf.matmul(
+            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_p, embeddings), embeddings[self.data.n_user:self.data.n_user+self.data.n_playlist, :]), W4)
+        aggregate3 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_t, embeddings), W5) + tf.matmul(
+            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_t, embeddings), embeddings[self.data.n_user+self.data.n_playlist:, :]), W6)
+
+
+        w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4) + tf.nn.l2_loss(W5) + tf.nn.l2_loss(W6)
+        self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
+        new_embeddings = tf.nn.leaky_relu(tf.concat([aggregate1, aggregate2, aggregate3], axis=0))
+        return new_embeddings
 
 

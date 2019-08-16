@@ -1,4 +1,5 @@
 from Model.BPR_PT import BPR_PT
+from Model.MENGCF_PT_bi_PT import MENGCF_PT_bi_PT
 from Model.ME_NGCF import ME_NGCF
 from Model.NGCF_PT import NGCF_PT
 from Model.utility.data_helper import Data
@@ -10,5 +11,5 @@ if __name__ == '__main__':
     batch_size = 256
 
     data = Data(path, batch_size=batch_size, laplacian_mode="PT")
-    model = NGCF_PT(num_epoch, data)
+    model = MENGCF_PT_bi_PT(num_epoch, data)
     model.fit()
