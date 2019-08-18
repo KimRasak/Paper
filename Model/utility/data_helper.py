@@ -91,7 +91,7 @@ def sample_neg_track_for_playlist(playlist: int, pt: dict, n_track):
     return neg_track
 
 class Data():
-    def __init__(self, path, pick=True, laplacian_mode="PT", batch_size=256):
+    def __init__(self, path, pick=True, laplacian_mode="PT", batch_size=256, reductive_ut=True):
         t0 = time()
         self.path = path
         self.batch_size = batch_size
@@ -122,18 +122,21 @@ class Data():
         self.test_set = {}  # Storing user-playlist-track test set.
 
         # Initialize R_ut
-        t_event = time()
-        with open(event_filepath) as f:
-            head_title = f.readline()
+        if reductive_ut:
+            print("Using Reductive R_ut, not reading events data.")
+        else:
+            t_event = time()
+            with open(event_filepath) as f:
+                head_title = f.readline()
 
-            line = f.readline()
-            while line:
-                ids = [int(i) for i in line.split(' ') if i.isdigit()]
-                uid, tids = ids[0], ids[1:]
-                for tid in tids:
-                    self.R_ut[uid, tid] = 1
                 line = f.readline()
-        print("Used %d seconds. Have read R_ut." % (time() - t_event))
+                while line:
+                    ids = [int(i) for i in line.split(' ') if i.isdigit()]
+                    uid, tids = ids[0], ids[1:]
+                    for tid in tids:
+                        self.R_ut[uid, tid] = 1
+                    line = f.readline()
+            print("Used %d seconds. Have read R_ut." % (time() - t_event))
 
         # Initialize matrix R_up, matrix R_pt, dict up and dict pt.
         t_upt = time()
@@ -149,6 +152,8 @@ class Data():
                 # Add element to R_pt
                 for tid in tids:
                     self.R_pt[pid, tid] = 1
+                    if reductive_ut:
+                        self.R_ut[uid, tid] = 1
                 # Add element to up
                 if uid not in self.up:
                     self.up[uid] = [pid]
@@ -174,7 +179,7 @@ class Data():
         print("Used %d seconds. Have read test set." % (time() - t_test_set))
 
         self.n_train = self.R_pt.getnnz()
-        self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * 32
+        self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * 16
 
         laplacian_modes = ["PT", "UT", "UPT", "None"]
         if laplacian_mode not in laplacian_modes:

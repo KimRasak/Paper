@@ -21,7 +21,7 @@ def convert_sp_mat_to_sp_tensor(X):
 
 class BaseModel(metaclass=ABCMeta):
     def __init__(self, num_epoch, data: Data, output_path="../output.txt",
-                 n_save_batch_loss=100, embedding_size=64, learning_rate=0.001, reg_rate=5*1e-6):
+                 n_save_batch_loss=100, embedding_size=64, learning_rate=0.001, reg_rate=5e-5):
         self.num_epoch = num_epoch
         self.data = data
         self.output_path = output_path
@@ -36,6 +36,7 @@ class BaseModel(metaclass=ABCMeta):
         self.build_model()
         self.create_session()
         self.restore_model()
+        self.show_graph()
 
     def build_model(self):
         laplacian_mode = self.data.laplacian_mode
@@ -45,7 +46,7 @@ class BaseModel(metaclass=ABCMeta):
             self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
 
             print("data.L: shape", self.L.shape)
-            # self.LI = self.L + tf.eye(self.L.shape[0])  # L + I. where I is the identity matrix.
+            self.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # L + I. where I is the identity matrix.
             self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
             self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
 
@@ -213,7 +214,7 @@ class BaseModel(metaclass=ABCMeta):
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4)
             self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
             new_embeddings = tf.nn.leaky_relu(tf.concat([aggregate1, aggregate2], axis=0))
-            print(new_embeddings)
+            print("new_embeddings:", new_embeddings)
 
         return new_embeddings
 
@@ -235,10 +236,17 @@ class BaseModel(metaclass=ABCMeta):
         aggregate3 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_t, embeddings), W5) + tf.matmul(
             tf.multiply(tf.sparse_tensor_dense_matmul(self.L_t, embeddings), embeddings[self.data.n_user+self.data.n_playlist:, :]), W6)
 
-
         w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4) + tf.nn.l2_loss(W5) + tf.nn.l2_loss(W6)
         self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
         new_embeddings = tf.nn.leaky_relu(tf.concat([aggregate1, aggregate2, aggregate3], axis=0))
         return new_embeddings
+
+    def show_graph(self):
+        tensorboard_dir = 'tensorboard/'  # 保存目录
+        if not os.path.exists(tensorboard_dir):
+            os.makedirs(tensorboard_dir)
+
+        writer = tf.summary.FileWriter(tensorboard_dir)
+        writer.add_graph(self.sess.graph)
 
 

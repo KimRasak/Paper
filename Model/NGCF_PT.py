@@ -36,10 +36,13 @@ class NGCF_PT(ModelPT):
         ebs0 = self.get_init_embeddings()
         ebs1, ebs2, ebs3 = self.build_graph_layers(ebs0)
         ebs_list = [ebs0, ebs1, ebs2, ebs3]
+        print("ebs1:", ebs1.shape)
 
         embed_playlist = self.get_concat_embedding(ebs_list, self.X_playlist)
         embed_pos_item = self.get_concat_embedding(ebs_list, self.data.n_playlist + self.X_pos_item)
         embed_neg_item = self.get_concat_embedding(ebs_list, self.data.n_playlist + self.X_neg_item)
+        print("embed_pos_item", embed_pos_item.shape)
+
         self.t_eb_playlist = embed_playlist
         self.t_eb_pos_item = embed_pos_item
         self.t_eb_neg_item = embed_neg_item
@@ -50,9 +53,10 @@ class NGCF_PT(ModelPT):
             e_loss = tf.nn.l2_loss(ebs)
             self.t_embed_loss = self.t_embed_loss + e_loss
 
+        print("tf.multiply(embed_playlist, embed_pos_item):", tf.multiply(embed_playlist, embed_pos_item).shape)
         self.t_pos_score = tf.reduce_sum(tf.multiply(embed_playlist, embed_pos_item), axis=1)
         self.t_neg_score = tf.reduce_sum(tf.multiply(embed_playlist, embed_neg_item), axis=1)
-
+        print("t_pos_score:", self.t_pos_score)
         # self.t_reg_loss =
         self.t_temp = tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)
         self.t_mf_loss = tf.negative(tf.reduce_mean(tf.log(self.t_temp)))
@@ -62,8 +66,11 @@ class NGCF_PT(ModelPT):
 
         # Output for testing/predicting
         predict_playlist_embed = self.get_concat_embedding(ebs_list, self.X_playlist_predict)
+        print("predict_playlist_embed:", predict_playlist_embed)
         items_predict_embeddings = self.get_concat_embedding(ebs_list, self.data.n_playlist + self.X_items_predict)
+        print("items_predict_embeddings:", items_predict_embeddings)
         self.t_predict = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
+        print("t_predict:", self.t_predict)
 
     def get_concat_embedding(self, ebs_list, index):
         num = 1

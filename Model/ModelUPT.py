@@ -12,4 +12,5 @@ class ModelUPT(BaseModel):
             self.X_playlist_predict: [pid],
             self.X_items_predict: tids
         })
-        return predicts[0]
+
+        return predicts

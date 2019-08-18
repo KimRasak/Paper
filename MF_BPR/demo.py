@@ -51,6 +51,8 @@ print(np.mean(c))
 # 0.4129746235682125
 # loss 0.41297466
 import tensorflow as tf
-
-W1 = tf.get_variable(tf.truncated_normal(shape=[2, 3], mean=0.0, stddev=0.5))
-a = 0 + W1
+sess = tf.Session()
+W0 = tf.constant(1, shape=[1, 2])
+W1 = tf.constant(3, shape=[2, 2])
+a = 0 + tf.square(W0 - W1)
+print(sess.run(a))
