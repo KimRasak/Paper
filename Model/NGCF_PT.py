@@ -58,8 +58,11 @@ class NGCF_PT(ModelPT):
         # self.t_reg_loss =
         self.t_temp = tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)
         self.t_mf_loss = tf.negative(tf.reduce_mean(tf.log(self.t_temp)))
+        print("t_mf_loss:", self.t_mf_loss)
         self.t_reg_loss = self.reg_rate * (self.t_embed_loss + self.t_weight_loss) / self.data.batch_size
         self.t_loss = self.t_mf_loss + self.t_reg_loss
+        print("t_reg_loss:", self.t_reg_loss)
+        print("t_loss:", self.t_loss)
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
 
         # Output for testing/predicting
@@ -95,7 +98,5 @@ class NGCF_PT(ModelPT):
             "loss": loss,
             "temp": temp,
             "mf_loss": mf_loss,
-            "reg_loss": reg_loss,
-            "pos_score": pos_score,
-            "neg_score": neg_score
+            "reg_loss": reg_loss
         }
