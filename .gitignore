@@ -5,3 +5,4 @@ raw-data
 *.mtx
 cpkt
 train_t.py
+*.pyc
