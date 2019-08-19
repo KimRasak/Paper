@@ -36,11 +36,12 @@ class NGCF_PT(ModelPT):
         ebs0 = self.get_init_embeddings()
         ebs1, ebs2, ebs3 = self.build_graph_layers(ebs0)
         ebs_list = [ebs0, ebs1, ebs2, ebs3]
+        ebs = tf.concat(ebs_list, 1)
         print("ebs1:", ebs1.shape)
 
-        embed_playlist = self.get_concat_embedding(ebs_list, self.X_playlist)
-        embed_pos_item = self.get_concat_embedding(ebs_list, self.data.n_playlist + self.X_pos_item)
-        embed_neg_item = self.get_concat_embedding(ebs_list, self.data.n_playlist + self.X_neg_item)
+        embed_playlist = tf.nn.embedding_lookup(ebs, self.X_playlist)
+        embed_pos_item = tf.nn.embedding_lookup(ebs, self.data.n_playlist + self.X_pos_item)
+        embed_neg_item = tf.nn.embedding_lookup(ebs, self.data.n_playlist + self.X_neg_item)
         print("embed_pos_item", embed_pos_item.shape)
 
         self.t_eb_playlist = embed_playlist
@@ -48,10 +49,7 @@ class NGCF_PT(ModelPT):
         self.t_eb_neg_item = embed_neg_item
 
         # Get embeddings loss.
-        self.t_embed_loss = tf.nn.l2_loss(ebs_list[0])
-        for ebs in ebs_list[1:]:
-            e_loss = tf.nn.l2_loss(ebs)
-            self.t_embed_loss = self.t_embed_loss + e_loss
+        self.t_embed_loss = tf.nn.l2_loss(ebs)
 
         print("tf.multiply(embed_playlist, embed_pos_item):", tf.multiply(embed_playlist, embed_pos_item).shape)
         self.t_pos_score = tf.reduce_sum(tf.multiply(embed_playlist, embed_pos_item), axis=1)
@@ -60,14 +58,14 @@ class NGCF_PT(ModelPT):
         # self.t_reg_loss =
         self.t_temp = tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)
         self.t_mf_loss = tf.negative(tf.reduce_mean(tf.log(self.t_temp)))
-        self.t_reg_loss = self.reg_rate * (self.t_embed_loss + self.t_weight_loss)
+        self.t_reg_loss = self.reg_rate * (self.t_embed_loss + self.t_weight_loss) / self.data.batch_size
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
 
         # Output for testing/predicting
-        predict_playlist_embed = self.get_concat_embedding(ebs_list, self.X_playlist_predict)
+        predict_playlist_embed = tf.nn.embedding_lookup(ebs, self.X_playlist_predict)
         print("predict_playlist_embed:", predict_playlist_embed)
-        items_predict_embeddings = self.get_concat_embedding(ebs_list, self.data.n_playlist + self.X_items_predict)
+        items_predict_embeddings = tf.nn.embedding_lookup(ebs, self.data.n_playlist + self.X_items_predict)
         print("items_predict_embeddings:", items_predict_embeddings)
         self.t_predict = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
         print("t_predict:", self.t_predict)
