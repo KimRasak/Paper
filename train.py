@@ -12,5 +12,6 @@ if __name__ == '__main__':
     num_epoch = 300
     batch_size = 256
 
-    data = Data(path, batch_size=batch_size, laplacian_mode="Test", reductive_ut=True)
+    data = Data(path, batch_size=batch_size, laplacian_mode="PT", reductive_ut=True)
     model = MENGCF_PT_bi_PT(num_epoch, data)
+    model.fit()

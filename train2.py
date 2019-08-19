@@ -18,3 +18,4 @@ if __name__ == '__main__':
     # model.fit()
     data = Data(path, batch_size=batch_size, laplacian_mode="PT", reductive_ut=True)
     model = NGCF_PT_PT(num_epoch, data)
+    model.fit()

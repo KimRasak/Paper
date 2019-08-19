@@ -25,7 +25,7 @@ def convert_sp_mat_to_sp_tensor(X):
 
 class BaseModel(metaclass=ABCMeta):
     def __init__(self, num_epoch, data: Data, output_path="../output.txt",
-                 n_save_batch_loss=100, embedding_size=64, learning_rate=0.001, reg_rate=5e-5):
+                 n_save_batch_loss=300, embedding_size=64, learning_rate=0.001, reg_rate=5e-5):
         self.num_epoch = num_epoch
         self.data = data
         self.output_path = output_path
