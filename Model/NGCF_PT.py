@@ -43,6 +43,7 @@ class NGCF_PT(ModelPT):
         embed_pos_item = tf.nn.embedding_lookup(ebs, self.data.n_playlist + self.X_pos_item)
         embed_neg_item = tf.nn.embedding_lookup(ebs, self.data.n_playlist + self.X_neg_item)
         print("embed_pos_item", embed_pos_item.shape)
+        print("embed_playlist:", embed_playlist)
 
         self.t_eb_playlist = embed_playlist
         self.t_eb_pos_item = embed_pos_item
@@ -51,9 +52,8 @@ class NGCF_PT(ModelPT):
         # Get embeddings loss.
         self.t_embed_loss = tf.nn.l2_loss(ebs)
 
-        print("tf.multiply(embed_playlist, embed_pos_item):", tf.multiply(embed_playlist, embed_pos_item).shape)
-        self.t_pos_score = tf.reduce_sum(tf.multiply(embed_playlist, embed_pos_item), axis=1)
-        self.t_neg_score = tf.reduce_sum(tf.multiply(embed_playlist, embed_neg_item), axis=1)
+        self.t_pos_score = tf.matmul(embed_playlist, embed_pos_item, transpose_b=True)
+        self.t_neg_score = tf.matmul(embed_playlist, embed_neg_item, transpose_b=True)
         print("t_pos_score:", self.t_pos_score)
         # self.t_reg_loss =
         self.t_temp = tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)
@@ -81,7 +81,6 @@ class NGCF_PT(ModelPT):
         return tf.reshape(embed, [embed.shape[0], embed.shape[-1]])
 
     def train_batch(self, batch):
-        t1 = time()
         for key, batch_value in batch.items():
             batch[key] = np.array(batch_value).reshape(-1, 1)
         opt, temp, loss, mf_loss, reg_loss, pos_score, neg_score, eb_p, eb_pos, eb_neg = self.sess.run([self.t_opt, self.t_temp, self.t_loss,
@@ -91,14 +90,12 @@ class NGCF_PT(ModelPT):
             self.X_pos_item: batch["pos_tracks"],
             self.X_neg_item: batch["neg_tracks"]
         })
-        batch_time = time() - t1
 
         return {
             "loss": loss,
             "temp": temp,
             "mf_loss": mf_loss,
             "reg_loss": reg_loss,
-            "pos_score": neg_score,
-            "neg_score": neg_score,
-            "batch_time": batch_time
+            "pos_score": pos_score,
+            "neg_score": neg_score
         }
