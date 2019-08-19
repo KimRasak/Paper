@@ -4,6 +4,7 @@ from Model.MDR_G6 import MDR_G6
 from Model.MENGCF_PT_bi_PT import MENGCF_PT_bi_PT
 from Model.ME_NGCF import ME_NGCF
 from Model.NGCF_PT import NGCF_PT
+from Model.NGCF_PT_PT import NGCF_PT_PT
 from Model.utility.data_helper import Data
 import tensorflow as tf
 
@@ -16,4 +17,4 @@ if __name__ == '__main__':
     # model = MDR_G6(num_epoch, data)
     # model.fit()
     data = Data(path, batch_size=batch_size, laplacian_mode="PT", reductive_ut=True)
-    model = MENGCF_PT_bi_PT(num_epoch, data)
+    model = NGCF_PT_PT(num_epoch, data)

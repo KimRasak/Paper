@@ -121,67 +121,68 @@ class Data():
         self.up = {}  # Storing user-playlist relationship of training set.
         self.test_set = {}  # Storing user-playlist-track test set.
 
-        # Initialize R_ut
-        if reductive_ut:
-            print("Using Reductive R_ut, not reading events data.")
-        else:
-            t_event = time()
-            with open(event_filepath) as f:
+        if laplacian_mode != "Test":
+            # Initialize R_ut
+            if reductive_ut:
+                print("Using Reductive R_ut, not reading events data.")
+            else:
+                t_event = time()
+                with open(event_filepath) as f:
+                    head_title = f.readline()
+
+                    line = f.readline()
+                    while line:
+                        ids = [int(i) for i in line.split(' ') if i.isdigit()]
+                        uid, tids = ids[0], ids[1:]
+                        for tid in tids:
+                            self.R_ut[uid, tid] = 1
+                        line = f.readline()
+                print("Used %d seconds. Have read R_ut." % (time() - t_event))
+
+            # Initialize matrix R_up, matrix R_pt, dict up and dict pt.
+            t_upt = time()
+            with open(train_filepath) as f:
                 head_title = f.readline()
 
                 line = f.readline()
                 while line:
                     ids = [int(i) for i in line.split(' ') if i.isdigit()]
-                    uid, tids = ids[0], ids[1:]
+                    uid, pid, tids = ids[0], ids[1], ids[2:]
+                    # Add element to R_up
+                    self.R_up[uid, pid] = 1
+                    # Add element to R_pt
                     for tid in tids:
-                        self.R_ut[uid, tid] = 1
+                        self.R_pt[pid, tid] = 1
+                        if reductive_ut:
+                            self.R_ut[uid, tid] = 1
+                    # Add element to up
+                    if uid not in self.up:
+                        self.up[uid] = [pid]
+                    else:
+                        self.up[uid].append(pid)
+                    # Add element to pt
+                    self.pt[pid] = tids
+
                     line = f.readline()
-            print("Used %d seconds. Have read R_ut." % (time() - t_event))
+            print("Used %d seconds. Have read matrix R_up, matrix R_pt, dict up and dict pt." % (time() - t_upt))
 
-        # Initialize matrix R_up, matrix R_pt, dict up and dict pt.
-        t_upt = time()
-        with open(train_filepath) as f:
-            head_title = f.readline()
-
-            line = f.readline()
-            while line:
-                ids = [int(i) for i in line.split(' ') if i.isdigit()]
-                uid, pid, tids = ids[0], ids[1], ids[2:]
-                # Add element to R_up
-                self.R_up[uid, pid] = 1
-                # Add element to R_pt
-                for tid in tids:
-                    self.R_pt[pid, tid] = 1
-                    if reductive_ut:
-                        self.R_ut[uid, tid] = 1
-                # Add element to up
-                if uid not in self.up:
-                    self.up[uid] = [pid]
-                else:
-                    self.up[uid].append(pid)
-                # Add element to pt
-                self.pt[pid] = tids
-
+            # Initialize test_set
+            t_test_set = time()
+            with open(test_filepath) as f:
                 line = f.readline()
-        print("Used %d seconds. Have read matrix R_up, matrix R_pt, dict up and dict pt." % (time() - t_upt))
-
-        # Initialize test_set
-        t_test_set = time()
-        with open(test_filepath) as f:
-            line = f.readline()
-            while line:
-                ids = [int(i) for i in line.split(' ') if i.isdigit()]
-                uid, pid, tids = ids[0], ids[1], ids[2:]
-                if uid not in self.test_set:
-                    self.test_set[uid] = dict()
-                self.test_set[uid][pid] = tids
-                line = f.readline()
-        print("Used %d seconds. Have read test set." % (time() - t_test_set))
+                while line:
+                    ids = [int(i) for i in line.split(' ') if i.isdigit()]
+                    uid, pid, tids = ids[0], ids[1], ids[2:]
+                    if uid not in self.test_set:
+                        self.test_set[uid] = dict()
+                    self.test_set[uid][pid] = tids
+                    line = f.readline()
+            print("Used %d seconds. Have read test set." % (time() - t_test_set))
 
         self.n_train = self.R_pt.getnnz()
         self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * 16
 
-        laplacian_modes = ["PT", "UT", "UPT", "None"]
+        laplacian_modes = ["PT", "UT", "UPT", "None", "Test"]
         if laplacian_mode not in laplacian_modes:
             raise Exception("Wrong laplacian mode. Expected one of %r, got %r" % (laplacian_modes, laplacian_mode))
         print("laplacian_mode=%r, loading laplacian matrix." % laplacian_mode)
@@ -191,7 +192,7 @@ class Data():
 
             self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (n+l * n+l)
             self.L_p = self.L[:self.n_playlist, :]
-            self.L_t = self.L[self.n_playlist, :]
+            self.L_t = self.L[self.n_playlist:, :]
 
             self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
             self.LI_p = self.LI[:self.n_playlist, :]
@@ -201,7 +202,7 @@ class Data():
 
             self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (m+n * m+n)
             self.L_u = self.L[:self.n_user, :]
-            self.L_t = self.L[self.n_user, :]
+            self.L_t = self.L[self.n_user:, :]
 
 
             self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
@@ -219,6 +220,16 @@ class Data():
             self.LI_u = self.LI[:self.n_user, :]
             self.LI_p = self.LI[self.n_user:self.n_user+self.n_playlist, :]
             self.LI_t = self.LI[self.n_user+self.n_playlist:, :]
+        elif laplacian_mode == "Test":
+            self.A: sp.spmatrix = sp.lil_matrix((self.n_playlist + self.n_track, self.n_user + self.n_track), dtype=np.float32)  # (n * l)
+
+            self.L: sp.spmatrix = sp.lil_matrix((self.n_playlist + self.n_track, self.n_playlist + self.n_track), dtype=np.float32)  # Normalized laplacian matrix of A. (n+l * n+l)
+            self.L_p = self.L[:self.n_playlist, :]
+            self.L_t = self.L[self.n_playlist:, :]
+
+            self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
+            self.LI_p = self.LI[:self.n_playlist, :]
+            self.LI_t = self.LI[self.n_playlist:, :]
         print("Read data used %d seconds in all." % (time() - t0))
         # self.laplacian_ut, laplacian_pt = self.get_laplacian(self.R_ut.tolil()), self.get_laplacian(self.R_pt.tolil())
 
