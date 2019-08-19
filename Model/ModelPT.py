@@ -15,4 +15,5 @@ class ModelPT(BaseModel):
             self.X_playlist_predict: [pid],
             self.X_items_predict: tids
         })
+        assert len(predicts[0]) == 101
         return predicts[0]

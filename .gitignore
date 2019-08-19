@@ -4,3 +4,4 @@ raw-data
 *.iml
 *.mtx
 cpkt
+train_t.py

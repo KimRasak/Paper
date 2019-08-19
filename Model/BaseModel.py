@@ -224,8 +224,11 @@ class BaseModel(metaclass=ABCMeta):
             L_P_emb = tf.sparse_tensor_dense_matmul(self.L_p, embeddings)
             L_P_emb_mul_emb = tf.multiply(L_P_emb, embeddings[:self.data.n_playlist, :])
             aggregate1 = tf.matmul(LI_P_emb, W1) + tf.matmul(L_P_emb_mul_emb, W2)
-            aggregate2 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_t, embeddings), W3) + tf.matmul(
-                tf.multiply(tf.sparse_tensor_dense_matmul(self.L_t, embeddings), embeddings[self.data.n_playlist:, :]), W4)
+
+            LI_T_emb = tf.sparse_tensor_dense_matmul(self.LI_t, embeddings)
+            L_T_emb = tf.sparse_tensor_dense_matmul(self.L_t, embeddings)
+            L_T_emb_mul_emb = tf.multiply(L_T_emb, embeddings[self.data.n_playlist:, :])
+            aggregate2 = tf.matmul(LI_T_emb, W3) + tf.matmul(L_T_emb_mul_emb, W4)
 
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4)
             self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
