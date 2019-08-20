@@ -1,6 +1,5 @@
 from Model.BPR_PT import BPR_PT
 from Model.MDR import MDR
-from Model.MDR_G6_att import MDR_G6
 from Model.MENGCF_PT_bi_PT import MENGCF_PT_bi_PT
 from Model.ME_NGCF import ME_NGCF
 from Model.NGCF_PT import NGCF_PT

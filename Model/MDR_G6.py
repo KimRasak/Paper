@@ -3,11 +3,11 @@ import numpy as np
 import tensorflow as tf
 
 from Model.ModelUPT import ModelUPT
-
+from tensorflow.contrib.layers import xavier_initializer
 
 class MDR_G6(ModelUPT):
     def get_init_embeddings(self):
-        return tf.Variable(tf.truncated_normal(shape=[self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size], mean=0.0, stddev=0.5))
+        return tf.Variable(xavier_initializer([self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size]))
 
     def build_graph_layers(self, embeddings):
         embeddings1 = self.build_graph_UPT(embeddings, self.embedding_size, self.embedding_size)
@@ -54,8 +54,7 @@ class MDR_G6(ModelUPT):
         user_embedding = ebs[:self.data.n_user, :]
         playlist_embedding = ebs[self.data.n_user:self.data.n_user + self.data.n_playlist, :]
         track_embedding = ebs[self.data.n_user + self.data.n_playlist:, :]
-        track_bias = tf.Variable(tf.truncated_normal(shape=[self.data.n_track], mean=0.0,
-                                stddev=0.5))
+        track_bias = tf.Variable(xavier_initializer([self.data.n_track]))
 
         embed_user = tf.nn.embedding_lookup(user_embedding, self.X_user)
         embed_playlist = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist)
@@ -70,8 +69,8 @@ class MDR_G6(ModelUPT):
         self.t_eb_pos_item = embed_pos_item
         self.t_eb_neg_item = embed_neg_item
 
-        B1 = tf.Variable(tf.truncated_normal(shape=[self.embedding_size * 4], mean=0.0, stddev=0.5))
-        B2 = tf.Variable(tf.truncated_normal(shape=[self.embedding_size * 4], mean=0.0, stddev=0.5))
+        B1 = tf.Variable(xavier_initializer([self.embedding_size * 4]))
+        B2 = tf.Variable(xavier_initializer([self.embedding_size * 4]))
 
         self.t_pos_score = self.MDR_layer(embed_user, embed_playlist, embed_pos_item, B1, B2)
         self.t_neg_score = self.MDR_layer(embed_user, embed_playlist, embed_neg_item, B1, B2)

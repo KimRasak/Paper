@@ -4,6 +4,7 @@ from time import time
 
 import tensorflow as tf
 import numpy as np
+from tensorflow.contrib.layers import xavier_initializer
 from Model.utility.data_helper import Data
 from Model.utility.batch_test import test
 
@@ -212,8 +213,8 @@ class BaseModel(metaclass=ABCMeta):
         if num_weight not in [2, 4]:
             raise Exception("Wrong number of layer weight.")
         if num_weight == 2:
-            W1 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-            W2 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+            W1 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+            W2 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
             aggregate = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI, embeddings), W1) + \
                         tf.matmul(tf.multiply(tf.sparse_tensor_dense_matmul(self.L, embeddings), embeddings), W2)
 
@@ -222,10 +223,10 @@ class BaseModel(metaclass=ABCMeta):
             new_embeddings = tf.nn.leaky_relu(aggregate)
             print("graph pt 2. new_embeddings:", new_embeddings)
         else:
-            W1 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-            W2 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-            W3 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-            W4 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+            W1 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+            W2 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+            W3 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+            W4 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
 
             LI_P_emb = tf.sparse_tensor_dense_matmul(self.LI_p, embeddings)
             L_P_emb = tf.sparse_tensor_dense_matmul(self.L_p, embeddings)
@@ -248,12 +249,12 @@ class BaseModel(metaclass=ABCMeta):
 
     # graph_UPT
     def build_graph_UPT(self, embeddings, eb_size1, eb_size2):
-        W1 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-        W2 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-        W3 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-        W4 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-        W5 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
-        W6 = tf.Variable(tf.truncated_normal(shape=[eb_size1, eb_size2], mean=0.0, stddev=0.001))
+        W1 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+        W2 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+        W3 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+        W4 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+        W5 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
+        W6 = tf.Variable(xavier_initializer([eb_size1, eb_size2]))
 
         aggregate1 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_u, embeddings), W1) + tf.matmul(
             tf.multiply(tf.sparse_tensor_dense_matmul(self.L_u, embeddings), embeddings[:self.data.n_user]), W2)
