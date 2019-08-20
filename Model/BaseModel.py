@@ -42,7 +42,6 @@ class BaseModel(metaclass=ABCMeta):
         self.build_model()
         self.create_session()
         self.restore_model()
-        self.show_graph()
 
     def build_model(self):
         laplacian_mode = self.data.laplacian_mode

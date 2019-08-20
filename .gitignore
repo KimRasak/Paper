@@ -6,3 +6,5 @@ raw-data
 cpkt
 train_t.py
 *.pyc
+Model/__pycache__
+Model/utility/__pycache__
