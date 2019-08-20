@@ -180,7 +180,7 @@ class Data():
             print("Used %d seconds. Have read test set." % (time() - t_test_set))
 
         self.n_train = self.R_pt.getnnz()
-        self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * 16
+        self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * 4
 
         laplacian_modes = ["PT", "UT", "UPT", "None", "Test"]
         if laplacian_mode not in laplacian_modes:
