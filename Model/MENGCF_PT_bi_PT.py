@@ -11,7 +11,7 @@ the class name contains "bi".
 class MENGCF_PT_bi_PT(NGCF_PT):
 
     def get_init_embeddings(self):
-        return tf.Variable(xavier_initializer([self.data.n_playlist + self.data.n_track, self.embedding_size]))
+        return tf.Variable(self.initializer([self.data.n_playlist + self.data.n_track, self.embedding_size]))
 
     def build_graph_layers(self, embeddings):
         embeddings1 = self.build_graph_PT(embeddings, self.embedding_size, self.embedding_size, num_weight=4)
