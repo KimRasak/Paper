@@ -64,7 +64,6 @@ class MDR(ModelUPT):
 
         B1 = tf.Variable(tf.truncated_normal(shape=[self.embedding_size], mean=0.0, stddev=0.5))
         B2 = tf.Variable(tf.truncated_normal(shape=[self.embedding_size], mean=0.0, stddev=0.5))
-        # B = tf.Variable(tf.truncated_normal(shape=[self.embedding_size, self.embedding_size], mean=0.0, stddev=0.01))
 
         self.t_pos_score = self.MDR_layer(embed_user, embed_playlist, embed_pos_item, B1, B2)
         self.t_neg_score = self.MDR_layer(embed_user, embed_playlist, embed_neg_item, B1, B2)

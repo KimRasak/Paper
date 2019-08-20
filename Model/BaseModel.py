@@ -74,11 +74,15 @@ class BaseModel(metaclass=ABCMeta):
             self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
         elif laplacian_mode == "Test":
             self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (n+l * n+l)
+            if self.data.L_u != None:
+                self.L_u = convert_sp_mat_to_sp_tensor(self.data.L_u)
             self.L_p = convert_sp_mat_to_sp_tensor(self.data.L_p)
             self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
 
             print("data.L: shape", self.L.shape)
             self.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # L + I. where I is the identity matrix.
+            if self.data.LI_u != None:
+                self.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
             self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
             self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
 
