@@ -14,9 +14,8 @@ import scipy.sparse as sp
 # A[:num_user, num_user:] = R
 # A[num_user:, :num_user] = R.T
 #
-# print("A part:", A[:2, :])
 # print("A:", A)
-# print(R.shape[0], R.shape[1])
+# print("A.shape:", R.shape[0], R.shape[1])
 #
 # def get_D(adj: sp.spmatrix, power=-0.5):  # Get degree diagonal matrix, where a node's degree is the number of edges starting from this node.
 #     rowsum = np.sum(adj, axis=1).flatten().A[0]
@@ -33,26 +32,24 @@ import scipy.sparse as sp
 # # print(sp.csgraph.laplacian(adj, normed=True))
 # D = get_D(A)
 # print("D:\n", D)
+# print("D.dot(A)", D.dot(A))
 # L = D.dot(A).dot(D)
 # print("L: ", L)
-#
-# print(1 / (3 ** 0.5))
-# print(1 / (6 ** 0.5))
-def sigmoid(x):
-    s = 1 / (1 + np.exp(-x))
-    return s
 
-a = np.array([8.244136, 0.3552748])
-b = np.array([2.711251, 0.598261])
-c = -np.log(sigmoid(a - b))
-print(c)
-print(np.mean(c))
-# [0.00394676 0.82200248]
-# 0.4129746235682125
-# loss 0.41297466
-import tensorflow as tf
-sess = tf.Session()
-W0 = tf.constant(1, shape=[1, 2])
-W1 = tf.constant(3, shape=[2, 2])
-a = 0 + tf.square(W0 - W1)
-print(sess.run(a))
+# print(1 / (3 ** 0.5))
+# print(1 / (2 ** 0.5))
+B = np.array([1, 2, 3])
+D = np.array([[4, 1, 5], [6, 8, 9]])
+print(B - D)
+# mul = np.multiply(B, D)
+# print(mul)
+# print(mul.T.dot(mul))
+# print(np.sum(np.square(mul), axis=0))
+
+
+# import tensorflow as tf
+# sess = tf.Session()
+# W0 = tf.constant(1, shape=[1, 2])
+# W1 = tf.constant(3, shape=[2, 2])
+# a = 0 + tf.square(W0 - W1)
+# print(sess.run(a))

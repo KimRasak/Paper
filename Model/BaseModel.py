@@ -126,7 +126,7 @@ class BaseModel(metaclass=ABCMeta):
             print('No model on path %r. Not using model.' % self.model_folder_path)
 
     def save_model(self, i_epoch):
-        if self.total_loss["loss"] == np.nan:
+        if np.isnan(self.total_loss["loss"]) :
             return
 
         if not os.path.exists(self.model_folder_path):

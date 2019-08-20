@@ -80,8 +80,8 @@ class MDR_G6(ModelUPT):
         self.t_mf_loss = tf.reduce_mean(-tf.log(tf.nn.sigmoid(self.t_pos_score + bias_pos - self.t_neg_score - bias_neg)))
 
         reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
-        reg_loss_emb = tf.nn.l2_loss(ebs) + tf.nn.l2_loss(track_bias)
-        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_B) / self.data.batch_size
+        reg_loss_emb = tf.nn.l2_loss(embed_user) + tf.nn.l2_loss(embed_pos_item) + tf.nn.l2_loss(embed_neg_item) + tf.nn.l2_loss(track_bias)
+        self.t_reg_loss = self.reg_rate * ((reg_loss_emb) / self.data.batch_size + reg_loss_B)
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
 
@@ -90,8 +90,7 @@ class MDR_G6(ModelUPT):
         predict_playlist_embed = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist_predict)
         items_predict_embeddings = tf.nn.embedding_lookup(track_embedding, self.X_items_predict)
         bias_predict_embedding = tf.nn.embedding_lookup(track_bias, self.X_items_predict)
-        self.t_predict = self.MDR_layer(predict_user_embed, predict_playlist_embed, items_predict_embeddings, B1, B2) \
-                         + bias_predict_embedding
+        self.t_predict = self.MDR_layer(predict_user_embed, predict_playlist_embed, items_predict_embeddings, B1, B2) + bias_predict_embedding
         print("t_predict", self.t_predict)
 
     def train_batch(self, batch):

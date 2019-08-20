@@ -51,7 +51,7 @@ def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix):  # Get mat
     t = time()
     m = R_up.shape[0]  # Number of users.
     n = R_pt.shape[0]  # Number of playlists.
-    l = R_pt.shape[1]  # Number of tracks.
+    l = R_ut.shape[1]  # Number of tracks.
 
     A = sp.lil_matrix((m+n+l, m+n+l), dtype=np.float32)
     A[:m, m:m+n] = R_up  # (m * n)
