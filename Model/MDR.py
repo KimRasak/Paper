@@ -78,7 +78,7 @@ class MDR(ModelUPT):
 
         reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
         reg_loss_emb = tf.nn.l2_loss(user_embedding) + tf.nn.l2_loss(playlist_embedding) + tf.nn.l2_loss(track_embedding) + tf.nn.l2_loss(track_bias)
-        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_B)
+        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_B) / self.data.batch_size
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
         # self.print_loss = tf.print("loss: ", self.loss, output_stream=sys.stdout)

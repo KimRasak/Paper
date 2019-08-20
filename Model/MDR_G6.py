@@ -75,7 +75,7 @@ class MDR_G6(ModelUPT):
             expand_predict_score = tf.expand_dims(predict_score, -1)
             raw_scores_predict = expand_predict_score if raw_scores_predict is None else tf.concat([raw_scores_predict, expand_predict_score], axis=1)  # wrong
 
-            reg_loss_emb = reg_loss_emb + tf.nn.l2_loss(user_embedding) + tf.nn.l2_loss(playlist_embedding) + tf.nn.l2_loss(track_embedding)
+            reg_loss_emb = reg_loss_emb + tf.nn.l2_loss(ebs)
 
             print("embed_pos_item", embed_pos_item)
             print("pos_score:", pos_score)
@@ -117,7 +117,7 @@ class MDR_G6(ModelUPT):
         self.t_mf_loss = tf.reduce_mean(-tf.log(tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)))
 
         reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
-        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_bias + reg_loss_B)
+        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_bias + reg_loss_B) / self.data.batch_size
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
 
