@@ -80,8 +80,8 @@ class MDR_G6(ModelUPT):
         self.t_mf_loss = tf.reduce_mean(-tf.log(tf.nn.sigmoid(self.t_pos_score + bias_pos - self.t_neg_score - bias_neg)))
 
         reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
-        reg_loss_emb = tf.nn.l2_loss(embed_user) + tf.nn.l2_loss(embed_pos_item) + tf.nn.l2_loss(embed_neg_item) + tf.nn.l2_loss(track_bias)
-        self.t_reg_loss = self.reg_rate * ((reg_loss_emb) / self.data.batch_size + reg_loss_B)
+        reg_loss_emb = tf.nn.l2_loss(embed_user) + tf.nn.l2_loss(embed_pos_item) + tf.nn.l2_loss(embed_neg_item) + tf.nn.l2_loss(bias_pos) + tf.nn.l2_loss(bias_neg)
+        self.t_reg_loss = self.reg_rate * ((reg_loss_emb + reg_loss_B) / self.data.batch_size)
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
 
