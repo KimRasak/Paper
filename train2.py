@@ -11,7 +11,7 @@ import tensorflow as tf
 if __name__ == '__main__':
     path = "./data/30music"
     num_epoch = 300
-    batch_size = 256
+    batch_size = 1024
 
     # data = Data(path, batch_size=batch_size, laplacian_mode="UPT", reductive_ut=True)
     # model = MDR_G6(num_epoch, data)

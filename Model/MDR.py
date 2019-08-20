@@ -7,8 +7,7 @@ from Model.ModelUPT import ModelUPT
 
 class MDR(ModelUPT):
     def get_init_embeddings(self):
-        return tf.Variable(tf.truncated_normal(shape=[self.data.n_user+self.data.n_playlist+self.data.n_track, self.embedding_size], mean=0.0,
-                                stddev=0.5))
+        return tf.Variable(self.initializer([self.data.n_user+self.data.n_playlist+self.data.n_track, self.embedding_size]))
 
     def MDR_layer(self, embed_user, embed_playlist, embed_track, B1, B2):
         delta_ut = embed_user - embed_track
@@ -46,14 +45,7 @@ class MDR(ModelUPT):
         user_embedding = embeddings[:self.data.n_user, :]
         playlist_embedding = embeddings[self.data.n_user:self.data.n_user+self.data.n_playlist, :]
         track_embedding = embeddings[self.data.n_user+self.data.n_playlist:, :]
-        # user_embedding = tf.Variable(tf.truncated_normal(shape=[self.data.n_user, self.embedding_size], mean=0.0,
-        #                         stddev=0.5))
-        # playlist_embedding = tf.Variable(tf.truncated_normal(shape=[self.data.n_playlist, self.embedding_size], mean=0.0,
-        #                         stddev=0.5))
-        # track_embedding = tf.Variable(tf.truncated_normal(shape=[self.data.n_track, self.embedding_size], mean=0.0,
-        #                         stddev=0.5))
-        track_bias = tf.Variable(tf.truncated_normal(shape=[self.data.n_track], mean=0.0,
-                                stddev=0.5))
+        track_bias = tf.Variable(self.initializer([self.data.n_track]))
 
         embed_user = tf.nn.embedding_lookup(user_embedding, self.X_user)
         embed_playlist = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist)
@@ -62,8 +54,8 @@ class MDR(ModelUPT):
         bias_pos = tf.nn.embedding_lookup(track_bias, self.X_pos_item)
         bias_neg = tf.nn.embedding_lookup(track_bias, self.X_neg_item)
 
-        B1 = tf.Variable(tf.truncated_normal(shape=[self.embedding_size], mean=0.0, stddev=0.5))
-        B2 = tf.Variable(tf.truncated_normal(shape=[self.embedding_size], mean=0.0, stddev=0.5))
+        B1 = tf.Variable(self.initializer([self.embedding_size]))
+        B2 = tf.Variable(self.initializer([self.embedding_size]))
 
         self.t_pos_score = self.MDR_layer(embed_user, embed_playlist, embed_pos_item, B1, B2)
         self.t_neg_score = self.MDR_layer(embed_user, embed_playlist, embed_neg_item, B1, B2)

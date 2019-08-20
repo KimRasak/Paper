@@ -9,7 +9,7 @@ import tensorflow as tf
 if __name__ == '__main__':
     path = "./data/30music"
     num_epoch = 300
-    batch_size = 256
+    batch_size = 1024
 
     data = Data(path, batch_size=batch_size, laplacian_mode="PT", reductive_ut=True)
     model = MENGCF_PT_bi_PT(num_epoch, data)

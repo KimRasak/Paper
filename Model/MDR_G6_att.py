@@ -7,7 +7,7 @@ from Model.ModelUPT import ModelUPT
 
 class MDR_G6_att(ModelUPT):
     def get_init_embeddings(self):
-        return tf.Variable(tf.truncated_normal(shape=[self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size], mean=0.0, stddev=0.5))
+        return tf.Variable(self.initializer([self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size]))
 
     def build_graph_layers(self, embeddings):
         embeddings1 = self.build_graph_UPT(embeddings, self.embedding_size, self.embedding_size)
