@@ -275,7 +275,7 @@ class BaseModel(metaclass=ABCMeta):
 
         w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4) + tf.nn.l2_loss(W5) + tf.nn.l2_loss(W6)
         self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
-        new_embeddings = tf.nn.elu(tf.concat([aggregate1, aggregate2, aggregate3], axis=0))
+        new_embeddings = tf.nn.selu(tf.concat([aggregate1, aggregate2, aggregate3], axis=0))
         return new_embeddings
 
     def show_graph(self):
