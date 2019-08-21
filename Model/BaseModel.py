@@ -260,8 +260,14 @@ class BaseModel(metaclass=ABCMeta):
         playlist_embeddings = embeddings[self.data.n_user:self.data.n_user+self.data.n_playlist, :]
         track_embeddings = embeddings[self.data.n_user+self.data.n_playlist:, :]
 
-        aggregate1 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_u, embeddings), W1) + tf.matmul(
-            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_u, embeddings), user_embeddings), W2)
+        LI_u_emb = tf.sparse_tensor_dense_matmul(self.LI_u, embeddings)
+        emb_u_W1 = tf.matmul(LI_u_emb, W1)
+
+        L_u_emb = tf.sparse_tensor_dense_matmul(self.L_u, embeddings)
+        emb_multiply = tf.multiply(L_u_emb, user_embeddings)
+        emb_u_W2 = tf.matmul(emb_multiply, W2)
+
+        aggregate1 = emb_u_W1 + emb_u_W2
         aggregate2 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_p, embeddings), W3) + tf.matmul(
             tf.multiply(tf.sparse_tensor_dense_matmul(self.L_p, embeddings), playlist_embeddings), W4)
         aggregate3 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_t, embeddings), W5) + tf.matmul(
