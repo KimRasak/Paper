@@ -116,7 +116,7 @@ class MDR_G6_att(ModelUPT):
         self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)))
 
         reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
-        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_bias + reg_loss_B)
+        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_bias + reg_loss_B + self.t_weight_loss)
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
 
