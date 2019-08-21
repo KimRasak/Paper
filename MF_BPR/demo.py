@@ -38,18 +38,22 @@ import scipy.sparse as sp
 
 # print(1 / (3 ** 0.5))
 # print(1 / (2 ** 0.5))
-B = np.array([1, 2, 3])
-D = np.array([[4, 1, 5], [6, 8, 9]])
-print(B - D)
+
 # mul = np.multiply(B, D)
 # print(mul)
 # print(mul.T.dot(mul))
 # print(np.sum(np.square(mul), axis=0))
 
 
-# import tensorflow as tf
-# sess = tf.Session()
+import tensorflow as tf
+sess = tf.Session()
 # W0 = tf.constant(1, shape=[1, 2])
 # W1 = tf.constant(3, shape=[2, 2])
 # a = 0 + tf.square(W0 - W1)
-# print(sess.run(a))
+eb = tf.Variable(tf.truncated_normal(shape=[4, 7]))
+t1 = tf.nn.embedding_lookup(eb, [2])
+t2 = tf.nn.embedding_lookup(eb, [3])
+sess.run(tf.global_variables_initializer())
+print(sess.run([t1, t2]))
+print(sess.run(eb[2:]))
+print(sess.run(eb[2:, :]))

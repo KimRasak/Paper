@@ -26,7 +26,7 @@ def convert_sp_mat_to_sp_tensor(X):
 
 class BaseModel(metaclass=ABCMeta):
     def __init__(self, num_epoch, data: Data, output_path="../output.txt",
-                 n_save_batch_loss=300, embedding_size=64, learning_rate=0.001, reg_rate=5e-5):
+                 n_save_batch_loss=300, embedding_size=64, learning_rate=2e-4, reg_rate=5e-5):
         self.num_epoch = num_epoch
         self.data = data
         self.output_path = output_path
@@ -256,16 +256,20 @@ class BaseModel(metaclass=ABCMeta):
         W5 = tf.Variable(self.initializer([eb_size1, eb_size2]))
         W6 = tf.Variable(self.initializer([eb_size1, eb_size2]))
 
+        user_embeddings = embeddings[:self.data.n_user, :]
+        playlist_embeddings = embeddings[self.data.n_user:self.data.n_user+self.data.n_playlist, :]
+        track_embeddings = embeddings[self.data.n_user+self.data.n_playlist:, :]
+
         aggregate1 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_u, embeddings), W1) + tf.matmul(
-            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_u, embeddings), embeddings[:self.data.n_user]), W2)
+            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_u, embeddings), user_embeddings), W2)
         aggregate2 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_p, embeddings), W3) + tf.matmul(
-            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_p, embeddings), embeddings[self.data.n_user:self.data.n_user+self.data.n_playlist, :]), W4)
+            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_p, embeddings), playlist_embeddings), W4)
         aggregate3 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_t, embeddings), W5) + tf.matmul(
-            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_t, embeddings), embeddings[self.data.n_user+self.data.n_playlist:, :]), W6)
+            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_t, embeddings), track_embeddings), W6)
 
         w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4) + tf.nn.l2_loss(W5) + tf.nn.l2_loss(W6)
         self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
-        new_embeddings = tf.nn.leaky_relu(tf.concat([aggregate1, aggregate2, aggregate3], axis=0))
+        new_embeddings = tf.nn.elu(tf.concat([aggregate1, aggregate2, aggregate3], axis=0))
         return new_embeddings
 
     def show_graph(self):

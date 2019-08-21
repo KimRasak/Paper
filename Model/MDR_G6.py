@@ -5,6 +5,23 @@ import tensorflow as tf
 from Model.ModelUPT import ModelUPT
 from tensorflow.contrib.layers import xavier_initializer
 
+
+def get_output(delta, B):
+    B_delta = tf.multiply(B, delta)
+    square = tf.square(B_delta)
+    print("square:", square, len(square.shape) - 1)
+    return tf.reduce_sum(square, axis=len(square.shape) - 1)
+
+def MDR_layer(embed_user, embed_playlist, embed_track, B1, B2):
+    delta_ut = embed_user - embed_track
+    delta_pt = embed_playlist - embed_track
+
+    o1 = get_output(delta_ut, B1)
+    o2 = get_output(delta_pt, B2)
+    print("o1:", o1)
+
+    return o1 + o2
+
 class MDR_G6(ModelUPT):
     def get_init_embeddings(self):
         return tf.Variable(self.initializer([self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size]))
@@ -14,22 +31,6 @@ class MDR_G6(ModelUPT):
         embeddings2 = self.build_graph_UPT(embeddings1, self.embedding_size, self.embedding_size)
         embeddings3 = self.build_graph_UPT(embeddings2, self.embedding_size, self.embedding_size)
         return embeddings1, embeddings2, embeddings3
-
-    def MDR_layer(self, embed_user, embed_playlist, embed_track, B1, B2):
-        delta_ut = embed_user - embed_track
-        delta_pt = embed_playlist - embed_track
-
-        def get_output(delta, B):
-            B_delta = tf.multiply(B, delta)
-            square = tf.square(B_delta)
-            print("square:", square, len(square.shape) - 1)
-            return tf.reduce_sum(square, axis=len(square.shape) - 1)
-
-        o1 = get_output(delta_ut, B1)
-        o2 = get_output(delta_pt, B2)
-        print("o1:", o1)
-
-        return o1 + o2
 
     def build_model(self):
         super().build_model()
@@ -49,6 +50,7 @@ class MDR_G6(ModelUPT):
         # embeddings
         ebs0 = self.get_init_embeddings()
         ebs1, ebs2, ebs3 = self.build_graph_layers(ebs0)
+        self.ebs0, self.ebs1, self.ebs2, self.ebs3 = ebs0, ebs1, ebs2, ebs3
         ebs_list = [ebs0, ebs1, ebs2, ebs3]
         ebs = tf.concat(ebs_list, 1)
         user_embedding = ebs[:self.data.n_user, :]
@@ -65,6 +67,7 @@ class MDR_G6(ModelUPT):
         print("embed_pos_item", embed_pos_item.shape)
         print("embed_playlist:", embed_playlist)
 
+        self.t_eb_user = embed_user
         self.t_eb_playlist = embed_playlist
         self.t_eb_pos_item = embed_pos_item
         self.t_eb_neg_item = embed_neg_item
@@ -72,10 +75,11 @@ class MDR_G6(ModelUPT):
         B1 = tf.Variable(self.initializer([self.embedding_size * 4]))
         B2 = tf.Variable(self.initializer([self.embedding_size * 4]))
 
-        self.t_pos_score = self.MDR_layer(embed_user, embed_playlist, embed_pos_item, B1, B2)
-        self.t_neg_score = self.MDR_layer(embed_user, embed_playlist, embed_neg_item, B1, B2)
+        self.t_pos_score = MDR_layer(embed_user, embed_playlist, embed_pos_item, B1, B2)
+        self.t_neg_score = MDR_layer(embed_user, embed_playlist, embed_neg_item, B1, B2)
         print("t_pos_score:", self.t_pos_score)
 
+        self.delt = self.t_pos_score + bias_pos - self.t_neg_score - bias_neg
         self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score + bias_pos - self.t_neg_score - bias_neg)))
 
         reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
@@ -89,19 +93,52 @@ class MDR_G6(ModelUPT):
         predict_playlist_embed = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist_predict)
         items_predict_embeddings = tf.nn.embedding_lookup(track_embedding, self.X_items_predict)
         bias_predict_embedding = tf.nn.embedding_lookup(track_bias, self.X_items_predict)
-        self.t_predict = self.MDR_layer(predict_user_embed, predict_playlist_embed, items_predict_embeddings, B1, B2) + bias_predict_embedding
+        self.t_predict = MDR_layer(predict_user_embed, predict_playlist_embed, items_predict_embeddings, B1, B2) + bias_predict_embedding
         print("t_predict", self.t_predict)
 
     def train_batch(self, batch):
+
+        for i, t in enumerate(batch['pos_tracks']):
+            assert t < self.data.n_track  # 采样的id在合理范围
+            assert t != batch['neg_tracks'][i]  # 正负采样不同
+            pl = batch['playlists'][i]
+            u = batch['users'][i]
+            assert self.data.R_up[u, pl] == 1
+            assert self.data.R_pt[pl, t] == 1 and self.data.R_ut[u, t] == 1, "%r %r" % (t in self.data.R_pt[pl], t in self.data.R_ut[u])  # 正采样
+            assert pl in self.data.up[u] and t in self.data.pt[pl]
+            assert batch['neg_tracks'][i] not in self.data.pt[pl]  # 负采样
+        for i in batch['neg_tracks']:
+            assert i < self.data.n_track
+        for i in batch['users']:
+            assert i < self.data.n_user
+        for i in batch['playlists']:
+            assert i < self.data.n_playlist
+
         for key, batch_value in batch.items():
             batch[key] = np.array(batch_value).reshape(-1, 1)
-        opt, loss, mf_loss, reg_loss, pos_score, neg_score = self.sess.run([self.t_opt, self.t_loss,
-                                                                                  self.t_mf_loss, self.t_reg_loss, self.t_pos_score, self.t_neg_score], feed_dict={
+        opt, \
+        loss, mf_loss, reg_loss, \
+        pos_score, neg_score, \
+        eb_user, eb_playlist, eb_pos_item, \
+        ebs0, ebs1, ebs2, ebs3,\
+        delt = self.sess.run([self.t_opt, self.t_loss, self.t_mf_loss, self.t_reg_loss,
+                                                                            self.t_pos_score, self.t_neg_score,
+                                                                            self.t_eb_user, self.t_eb_playlist, self.t_eb_pos_item,
+                                                                            self.ebs0, self.ebs1, self.ebs2, self.ebs3,
+                                                                            self.delt], feed_dict={
             self.X_user: batch["users"],
             self.X_playlist: batch["playlists"],
             self.X_pos_item: batch["pos_tracks"],
             self.X_neg_item: batch["neg_tracks"]
         })
+
+        for d in delt:
+            if d == 0 or np.isnan(d):
+                print("found...")
+                break
+
+        if np.isnan(loss) or np.isnan(reg_loss) or np.isnan(mf_loss):
+            print("loss")
 
         return {
             "loss": loss,
