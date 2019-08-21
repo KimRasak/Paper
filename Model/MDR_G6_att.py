@@ -32,7 +32,7 @@ class MDR_G6_att(ModelUPT):
         return o1 + o2
 
     def get_attentive_scores(self, raw_scores):
-        softmax_scores = tf.nn.softmax(raw_scores)
+        softmax_scores = tf.nn.softmax(raw_scores, axis=1)
         scores = tf.reduce_sum(tf.multiply(softmax_scores, raw_scores), axis=len(raw_scores.shape) - 1)
         print("raw scores:", raw_scores)
         print("softmax_scores:", softmax_scores)
