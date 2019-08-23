@@ -4,7 +4,7 @@ import tensorflow as tf
 from Model.ModelPT import ModelPT
 
 
-class MDR_G6(ModelPT):
+class NGCF_PT_bi_PT_att(ModelPT):
     def get_init_embeddings(self):
         return tf.Variable(self.initializer([self.data.n_playlist + self.data.n_track, self.embedding_size]))
 
