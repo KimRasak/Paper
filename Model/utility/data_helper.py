@@ -14,7 +14,7 @@ import scipy.sparse as sp
 """
 
 
-def get_laplacian(A: sp.spmatrix):
+def get_laplacian(A: sp.spmatrix, A0=None):
     t = time()
 
     def get_D(adj: sp.spmatrix,
@@ -28,16 +28,19 @@ def get_laplacian(A: sp.spmatrix):
         d_mat_inv = sp.diags(d_inv)
         return d_mat_inv
 
-    def get_symmetric_normalized_laplacian(adj: sp.spmatrix):
+    def get_symmetric_normalized_laplacian(adj: sp.spmatrix, A0: sp.spmatrix):
         D = get_D(adj)
-        return D.dot(adj).dot(D).tocoo()
+        if A0 != None:
+            return D.dot(A0).dot(D).tocoo()
+        else:
+            return D.dot(adj).dot(D).tocoo()
 
-    L: sp.spmatrix = get_symmetric_normalized_laplacian(A)
+    L: sp.spmatrix = get_symmetric_normalized_laplacian(A, A0)
     print('Used %d seconds. Get symmetric normalized laplacian matrix.' % (time() - t))
     return L.tocsr()
 
 
-def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix):  # Get matrix "A" among user-playlist-track relationship.
+def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix, alpha):  # Get matrix "A" among user-playlist-track relationship.
     """
     A = [ 0      R_up   R_ut
           R_up_T  0     R_pt
@@ -62,8 +65,18 @@ def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix):  # Get mat
     A[m+n:, :m] = R_ut.T  # (l * m)
     A[m+n:, m:m+n] = R_pt.T  # (l * n)
 
+    A0 = None
+    if alpha != 1:
+        A0 = sp.lil_matrix((m+n+l, m+n+l), dtype=np.float32)
+        A0[:m, m:m+n] = R_up  # (m * n)
+        A0[:m, m+n:] = R_ut * alpha  # (m * l)
+        A0[m:m+n, m+n:] = R_pt  # (n * l)
+
+        A0[m:m+n, :m] = R_up.T  # (n * m)
+        A0[m+n:, :m] = R_ut.T  # (l * m)
+        A0[m+n:, m:m+n] = R_pt.T  # (l * n)
     print('Used %d seconds. Already create adjacency matrix(A_3). shape of A: %r' % (time() - t, A.shape))
-    return A
+    return A, A0
 
 
 def get_A_2(R: sp.spmatrix):  # Get matrix "A" between user-item relationship.
@@ -189,7 +202,7 @@ class Data():
         print("laplacian_mode=%r, loading laplacian matrix." % laplacian_mode)
         self.laplacian_mode = laplacian_mode
         if laplacian_mode == "PT":
-            self.A: sp.spmatrix = get_A_2(self.R_pt)  # (n * l)
+            self.A = get_A_2(self.R_pt)  # (n * l)
 
             self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (n+l * n+l)
             self.L_p = self.L[:self.n_playlist, :]
@@ -209,9 +222,9 @@ class Data():
             self.LI_u = self.LI[:self.n_user, :]
             self.LI_t = self.LI[self.n_user:, :]
         elif laplacian_mode == "UPT":
-            self.A: sp.spmatrix = get_A_3(self.R_up, self.R_ut, self.R_pt)  # (m+n+l * m+n+l)
+            self.A, A0 = get_A_3(self.R_up, self.R_ut, self.R_pt, self.alpha)  # (m+n+l * m+n+l)
 
-            self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (m+n+l * m+n+l)
+            self.L: sp.spmatrix = get_laplacian(self.A, A0)  # Normalized laplacian matrix of A. (m+n+l * m+n+l)
             self.L_u = self.L[:self.n_user, :]
             self.L_p = self.L[self.n_user:self.n_user+self.n_playlist, :]
             self.L_t = self.L[self.n_user+self.n_playlist:, :]

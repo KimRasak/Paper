@@ -93,7 +93,8 @@ def read_30music_playlists(filepath="../raw-data/30music/entities/playlist.idoma
             uid = user_track['subjects'][0]['id']
 
             # Extract playlist's tids.
-            if (len(user_track['objects']) == 0) or (not isinstance(user_track['objects'][0], dict)):  # Ignore empty playlists.
+            if (len(user_track['objects']) == 0) or (
+                    not isinstance(user_track['objects'][0], dict)):  # Ignore empty playlists.
                 continue
             tids = set([track['id'] for track in user_track['objects']])
 
@@ -119,8 +120,32 @@ def read_30music_playlists(filepath="../raw-data/30music/entities/playlist.idoma
     return data, max_uid, max_pid, max_tid  # Note that the first track id is 0.
 
 
-def read_30music(filepath):
-    pass
+def read_aotm_playlists(filepath="../raw-data/aotm/aotm2011_playlists.json"):
+    with open('../raw-data/aotm/aotm2011_playlists.json', 'r') as file_desc:
+        raw_playlists = json.loads(file_desc.read())
+        data = {}
+
+        st_users = set()
+        st_playlists = set()
+        st_tracks = set()
+
+        for playlist in raw_playlists:
+            pid = playlist['mix_id']
+            username = playlist['user']['name']
+            tracks = [(t[0][0], t[0][1]) for t in playlist['playlist']]
+
+            if username not in data:
+                data[username] = {}
+
+            user = data[username]
+            assert pid not in user
+            user[pid] = tracks
+
+            st_users.add(username)
+            st_playlists.add(pid)
+            for t in tracks:
+                st_tracks.add(t)
+    return data
 
 
 def filter_playlist_data(data, max_n_playlist=1000, min_n_track=5, max_n_track=1000):
@@ -183,7 +208,7 @@ def filter_events_data(events_data: dict, valid_uids, valid_tids):
             del events_data[uid]
 
 
-def compact_data_ids(playlist_data: dict, event_data: dict, uids=None, pids=None, tids=None):
+def compact_data_ids(playlist_data: dict, event_data: dict = None, uids=None, pids=None, tids=None):
     if uids is None or pids is None or tids is None:
         uids, pids, tids, _ = get_playlist_ids(playlist_data)
     uid_dict = {uid: new_uid for new_uid, uid in enumerate(uids)}
@@ -207,6 +232,9 @@ def compact_data_ids(playlist_data: dict, event_data: dict, uids=None, pids=None
                 new_tid = tid_dict[tid]
                 new_playlist_data[new_uid][new_pid].add(new_tid)
 
+    if event_data is None:
+        return new_playlist_data
+
     new_events_data = dict()
     for uid, tids in event_data.items():
         new_uid = uid_dict[uid]
@@ -220,7 +248,7 @@ def compact_data_ids(playlist_data: dict, event_data: dict, uids=None, pids=None
     return new_playlist_data, new_events_data
 
 
-def generate_subset(playlist_data: dict, event_data: dict, pids=None, proportion=0.2):
+def generate_subset(playlist_data: dict, pids=None, proportion=0.2):
     if pids is None:
         _, pids, _, _ = get_playlist_ids(playlist_data)
 
@@ -236,16 +264,15 @@ def generate_subset(playlist_data: dict, event_data: dict, pids=None, proportion
             pick_playlist_data[uid] = new_user
 
     uids, pids, tids, num_playlist_interactions = get_playlist_ids(pick_playlist_data)
-    filter_events_data(event_data, uids, tids)
-    event_uids, event_tids, num_event_interactions = get_events_ids(event_data)
 
-    print("generate_subset: The [sub]-dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (len(uids), len(pids), len(tids), num_playlist_interactions))
-    print("generate_subset: The [subset] events implicit feedbacks have %d user ids, %d track ids and %d interactions" % (len(event_uids), len(event_tids), num_event_interactions))
+    print("generate_subset: The [sub]-dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
+        len(uids), len(pids), len(tids), num_playlist_interactions))
 
-    return pick_playlist_data, event_data
+    return pick_playlist_data
 
 
-def save_data(playlist_data: dict, event_data: dict, p_filepath="../data/30music/playlist.txt", e_filepath="../data/30music/events.txt"):
+def save_data(playlist_data: dict, event_data: dict=None, p_filepath="../data/30music/playlist.txt",
+              e_filepath="../data/30music/events.txt"):
     with open(p_filepath, 'w') as f:
         f.write("user_id playlist_id track_ids\n")
         for uid, user in playlist_data.items():
@@ -255,6 +282,8 @@ def save_data(playlist_data: dict, event_data: dict, p_filepath="../data/30music
                     f.write("%d " % tid)
                 f.write("\n")
 
+    if event_data is None:
+        return
     with open(e_filepath, 'w') as f:
         f.write("user_id track_ids\n")
         for uid, tids in event_data.items():
@@ -264,7 +293,7 @@ def save_data(playlist_data: dict, event_data: dict, p_filepath="../data/30music
             f.write("\n")
 
 
-if __name__ == '__main__':
+def old_30music_main():
     event_data, _, _ = read_30music_events()
     playlist_data, _, _, _ = read_30music_playlists()
 
@@ -273,9 +302,10 @@ if __name__ == '__main__':
     filter_events_data(event_data, uids, tids)
     event_uids, event_tids, num_event_interactions = get_events_ids(event_data)
 
-
-    print("The dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (len(uids), len(pids), len(tids), num_playlist_interactions))
-    print("The events implicit feedbacks have %d user ids, %d track ids and %d interactions" % (len(event_uids), len(event_tids), num_event_interactions))
+    print("The dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
+        len(uids), len(pids), len(tids), num_playlist_interactions))
+    print("The events implicit feedbacks have %d user ids, %d track ids and %d interactions" % (
+        len(event_uids), len(event_tids), num_event_interactions))
 
     # Compact whole dataset ids. Save dataset.
     playlist_data, event_data = compact_data_ids(playlist_data, event_data)
@@ -300,5 +330,24 @@ if __name__ == '__main__':
     # The [subset] events implicit feedbacks have 5207 user ids, 108607 track ids and 719713 interactions
 
 
+if __name__ == '__main__':
+    playlist_data = read_aotm_playlists()
 
+    filter_playlist_data(playlist_data)
+    uids, pids, tids, num_playlist_interactions = get_playlist_ids(playlist_data)
 
+    print("The dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
+        len(uids), len(pids), len(tids), num_playlist_interactions))
+
+    # Compact whole dataset ids. Save dataset.
+    playlist_data = compact_data_ids(playlist_data)
+    p_filepath = "../data/aotm/playlist.txt"
+    e_filepath = "../data/aotm/events.txt"
+    save_data(playlist_data, p_filepath=p_filepath, e_filepath=e_filepath)
+
+    # Generate subset. Compact subset ids. Save sub-dataset.
+    pick_playlist_data = generate_subset(playlist_data)
+    pick_playlist_data = compact_data_ids(pick_playlist_data)
+    pick_p_filepath = "../data/aotm/pick_playlist.txt"
+    pick_e_filepath = "../data/aotm/pick_events.txt"
+    save_data(pick_playlist_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)

@@ -45,15 +45,20 @@ import scipy.sparse as sp
 # print(np.sum(np.square(mul), axis=0))
 
 
-import tensorflow as tf
-sess = tf.Session()
-# W0 = tf.constant(1, shape=[1, 2])
-# W1 = tf.constant(3, shape=[2, 2])
-# a = 0 + tf.square(W0 - W1)
-eb = tf.Variable(tf.truncated_normal(shape=[4, 7]))
-t1 = tf.nn.embedding_lookup(eb, [2])
-t2 = tf.nn.embedding_lookup(eb, [3])
-sess.run(tf.global_variables_initializer())
-print(sess.run([t1, t2]))
-print(sess.run(eb[2:]))
-print(sess.run(eb[2:, :]))
+# import tensorflow as tf
+# sess = tf.Session()
+# # W0 = tf.constant(1, shape=[1, 2])
+# # W1 = tf.constant(3, shape=[2, 2])
+# # a = 0 + tf.square(W0 - W1)
+# eb = tf.Variable(tf.truncated_normal(shape=[4, 7]))
+# t1 = tf.nn.embedding_lookup(eb, [2])
+# t2 = tf.nn.embedding_lookup(eb, [3])
+# sess.run(tf.global_variables_initializer())
+# print(sess.run([t1, t2]))
+# print(sess.run(eb[2:]))
+# print(sess.run(eb[2:, :]))
+
+di = {(1, 2): [3, 4, 5]}
+for k, v in di.items():
+    print(k, v)
+

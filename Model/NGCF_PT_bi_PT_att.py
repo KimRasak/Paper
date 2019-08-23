@@ -14,22 +14,6 @@ class NGCF_PT_bi_PT_att(ModelPT):
         embeddings3 = self.build_graph_PT(embeddings2, self.embedding_size, self.embedding_size, num_weight=4)
         return embeddings1, embeddings2, embeddings3
 
-    def MDR_layer(self, embed_user, embed_playlist, embed_track, B1, B2):
-        delta_ut = embed_user - embed_track
-        delta_pt = embed_playlist - embed_track
-
-        def get_output(delta, B):
-            B_delta = tf.multiply(B, delta)
-            square = tf.square(B_delta)
-            print("square:", square, len(square.shape) - 1)
-            return tf.reduce_sum(square, axis=len(square.shape) - 1)
-
-        o1 = get_output(delta_ut, B1)
-        o2 = get_output(delta_pt, B2)
-        print("o1:", o1)
-
-        return o1 + o2
-
     def get_attentive_scores(self, raw_scores):
         softmax_scores = tf.nn.softmax(raw_scores, axis=1)
         scores = tf.reduce_sum(tf.multiply(softmax_scores, raw_scores), axis=len(raw_scores.shape) - 1)
@@ -88,13 +72,11 @@ class NGCF_PT_bi_PT_att(ModelPT):
 
         # An input for training is a traid (playlist id, positive_item id, negative_item id)
         batch_size = self.data.batch_size
-        self.X_user = tf.placeholder(tf.int32, shape=(batch_size, 1))
         self.X_playlist = tf.placeholder(tf.int32, shape=(batch_size, 1))
         self.X_pos_item = tf.placeholder(tf.int32, shape=(batch_size, 1))
         self.X_neg_item = tf.placeholder(tf.int32, shape=(batch_size, 1))
 
         # An input for testing/predicting is only the playlist id
-        self.X_user_predict = tf.placeholder(tf.int32, shape=(1), name="x_user_predict")
         self.X_playlist_predict = tf.placeholder(tf.int32, shape=(1), name="x_playlist_predict")
         self.X_items_predict = tf.placeholder(tf.int32, shape=(101), name="x_items_predict")
 
@@ -115,7 +97,6 @@ class NGCF_PT_bi_PT_att(ModelPT):
             batch[key] = np.array(batch_value).reshape(-1, 1)
         opt, loss, mf_loss, reg_loss, pos_score, neg_score = self.sess.run([self.t_opt, self.t_loss,
                                                                                   self.t_mf_loss, self.t_reg_loss, self.t_pos_score, self.t_neg_score], feed_dict={
-            self.X_user: batch["users"],
             self.X_playlist: batch["playlists"],
             self.X_pos_item: batch["pos_tracks"],
             self.X_neg_item: batch["neg_tracks"]
