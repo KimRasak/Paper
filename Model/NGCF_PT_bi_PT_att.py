@@ -56,20 +56,24 @@ class NGCF_PT_bi_PT_att(ModelPT):
             predict_playlist_embed = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist_predict)
             items_predict_embeddings = tf.nn.embedding_lookup(track_embedding, self.X_items_predict)
 
-            pos_score = tf.matmul(embed_playlist, embed_pos_item, transpose_b=True)
-            neg_score = tf.matmul(embed_playlist, embed_neg_item, transpose_b=True)
-            predict_score = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
+            pos_score = tf.squeeze(tf.matmul(embed_playlist, embed_pos_item, transpose_b=True), axis=2)
+            neg_score = tf.squeeze(tf.matmul(embed_playlist, embed_neg_item, transpose_b=True), axis=2)
+            predict_score = tf.squeeze(tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True))
 
             raw_scores_pos = pos_score if raw_scores_pos is None else tf.concat([raw_scores_pos, pos_score], axis=1)
             raw_scores_neg = neg_score if raw_scores_neg is None else tf.concat([raw_scores_neg, neg_score], axis=1)
 
-            expand_predict_score = tf.expand_dims(predict_score, -1)
-            raw_scores_predict = expand_predict_score if raw_scores_predict is None else tf.concat([raw_scores_predict, expand_predict_score], axis=1)
+            expa = tf.expand_dims(predict_score, axis=1)
+            raw_scores_predict = expa if raw_scores_predict is None else tf.concat([raw_scores_predict, expa], axis=1)
 
             reg_loss_emb += tf.nn.l2_loss(ebs)
 
+            print("embed_playlist:", embed_playlist)
             print("embed_pos_item", embed_pos_item)
             print("pos_score:", pos_score)
+            print("raw_scores_pos:", raw_scores_pos)
+            print("raw_scores_predict:", raw_scores_predict)
+            print("predict_score:", predict_score)
 
         scores_pos = self.get_attentive_scores(raw_scores_pos)
         scores_neg = self.get_attentive_scores(raw_scores_neg)

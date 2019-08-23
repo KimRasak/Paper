@@ -75,14 +75,14 @@ class BaseModel(metaclass=ABCMeta):
             self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
         elif laplacian_mode == "Test":
             self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (n+l * n+l)
-            if self.data.L_u != None:
+            if hasattr(self.data, "L_u"):
                 self.L_u = convert_sp_mat_to_sp_tensor(self.data.L_u)
             self.L_p = convert_sp_mat_to_sp_tensor(self.data.L_p)
             self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
 
             print("data.L: shape", self.L.shape)
             self.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # L + I. where I is the identity matrix.
-            if self.data.LI_u != None:
+            if hasattr(self.data, "LI_u"):
                 self.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
             self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
             self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
@@ -221,12 +221,14 @@ class BaseModel(metaclass=ABCMeta):
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2)
             self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
             new_embeddings = tf.nn.selu(aggregate)
-            print("graph pt 2. new_embeddings:", new_embeddings)
+            print("graph PT 2. new_embeddings:", new_embeddings)
         else:
             W1 = tf.Variable(self.initializer([eb_size1, eb_size2]))
             W2 = tf.Variable(self.initializer([eb_size1, eb_size2]))
             W3 = tf.Variable(self.initializer([eb_size1, eb_size2]))
             W4 = tf.Variable(self.initializer([eb_size1, eb_size2]))
+
+            print(self.LI_p)
 
             LI_P_emb = tf.sparse_tensor_dense_matmul(self.LI_p, embeddings)
             L_P_emb = tf.sparse_tensor_dense_matmul(self.L_p, embeddings)
@@ -241,7 +243,7 @@ class BaseModel(metaclass=ABCMeta):
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4)
             self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
             new_embeddings = tf.nn.selu(tf.concat([aggregate1, aggregate2], axis=0))
-            print("graph pt 4. new_embeddings:", new_embeddings)
+            print("graph PT 4. new_embeddings:", new_embeddings)
 
         return new_embeddings
 
