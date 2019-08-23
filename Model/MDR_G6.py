@@ -104,8 +104,8 @@ class MDR_G6(ModelUPT):
             assert t != batch['neg_tracks'][i]  # 正负采样不同
             pl = batch['playlists'][i]
             u = batch['users'][i]
-            assert self.data.R_up[u, pl] == 1
-            assert self.data.R_pt[pl, t] == 1 and self.data.R_ut[u, t] == 1, "%r %r" % (t in self.data.R_pt[pl], t in self.data.R_ut[u])  # 正采样
+            assert self.data.R_up[u, pl] > 0
+            assert self.data.R_pt[pl, t] > 0 and self.data.R_ut[u, t] >= 0, "%r %r" % (t in self.data.R_pt[pl], t in self.data.R_ut[u])  # 正采样
             assert pl in self.data.up[u] and t in self.data.pt[pl]
             assert batch['neg_tracks'][i] not in self.data.pt[pl]  # 负采样
         for i in batch['neg_tracks']:
@@ -133,13 +133,13 @@ class MDR_G6(ModelUPT):
             self.X_neg_item: batch["neg_tracks"]
         })
 
-        for d in delt:
-            if d == 0 or np.isnan(d):
-                print("found...")
-                break
-
-        if np.isnan(loss) or np.isnan(reg_loss) or np.isnan(mf_loss):
-            print("loss")
+        # for d in delt:
+        #     if d == 0 or np.isnan(d):
+        #         print("found...")
+        #         break
+        #
+        # if np.isnan(loss) or np.isnan(reg_loss) or np.isnan(mf_loss):
+        #     print("loss")
 
         return {
             "loss": loss,

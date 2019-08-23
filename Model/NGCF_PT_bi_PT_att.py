@@ -1,18 +1,17 @@
-from time import time
 import numpy as np
 import tensorflow as tf
 
-from Model.ModelUPT import ModelUPT
+from Model.ModelPT import ModelPT
 
 
-class MDR_G6_att(ModelUPT):
+class MDR_G6(ModelPT):
     def get_init_embeddings(self):
-        return tf.Variable(self.initializer([self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size]))
+        return tf.Variable(self.initializer([self.data.n_playlist + self.data.n_track, self.embedding_size]))
 
     def build_graph_layers(self, embeddings):
-        embeddings1 = self.build_graph_UPT(embeddings, self.embedding_size, self.embedding_size)
-        embeddings2 = self.build_graph_UPT(embeddings1, self.embedding_size, self.embedding_size)
-        embeddings3 = self.build_graph_UPT(embeddings2, self.embedding_size, self.embedding_size)
+        embeddings1 = self.build_graph_PT(embeddings, self.embedding_size, self.embedding_size, num_weight=4)
+        embeddings2 = self.build_graph_PT(embeddings1, self.embedding_size, self.embedding_size, num_weight=4)
+        embeddings3 = self.build_graph_PT(embeddings2, self.embedding_size, self.embedding_size, num_weight=4)
         return embeddings1, embeddings2, embeddings3
 
     def MDR_layer(self, embed_user, embed_playlist, embed_track, B1, B2):
@@ -39,59 +38,46 @@ class MDR_G6_att(ModelUPT):
         print("scores:", scores)
         return scores
 
-    def get_layers_scores(self, ebs_list, B1, B2):
+    def get_layers_scores(self, ebs_list):
         raw_scores_pos = None
         raw_scores_neg = None
         raw_scores_predict = None
         reg_loss_emb = 0
-        track_bias = tf.Variable(self.initializer([self.data.n_track]))
-        bias_pos = tf.nn.embedding_lookup(track_bias, self.X_pos_item)
-        bias_neg = tf.nn.embedding_lookup(track_bias, self.X_neg_item)
-        bias_predict_embedding = tf.nn.embedding_lookup(track_bias, self.X_items_predict)
         for ebs in ebs_list:
-            user_embedding = ebs[:self.data.n_user, :]
-            playlist_embedding = ebs[self.data.n_user:self.data.n_user + self.data.n_playlist, :]
-            track_embedding = ebs[self.data.n_user + self.data.n_playlist:, :]
+            playlist_embedding = ebs[:self.data.n_playlist, :]
+            track_embedding = ebs[self.data.n_playlist:, :]
 
             # Embedding for training.
-            embed_user = tf.nn.embedding_lookup(user_embedding, self.X_user)
             embed_playlist = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist)
             embed_pos_item = tf.nn.embedding_lookup(track_embedding, self.X_pos_item)
             embed_neg_item = tf.nn.embedding_lookup(track_embedding, self.X_neg_item)
 
             # Output for testing/predicting
-            predict_user_embed = tf.nn.embedding_lookup(user_embedding, self.X_user_predict)
             predict_playlist_embed = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist_predict)
             items_predict_embeddings = tf.nn.embedding_lookup(track_embedding, self.X_items_predict)
 
-            pos_score = self.MDR_layer(embed_user, embed_playlist, embed_pos_item, B1, B2)
-            neg_score = self.MDR_layer(embed_user, embed_playlist, embed_neg_item, B1, B2)
-            predict_score = self.MDR_layer(predict_user_embed, predict_playlist_embed, items_predict_embeddings, B1, B2)
+            pos_score = tf.matmul(embed_playlist, embed_pos_item, transpose_b=True)
+            neg_score = tf.matmul(embed_playlist, embed_neg_item, transpose_b=True)
+            predict_score = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
 
             raw_scores_pos = pos_score if raw_scores_pos is None else tf.concat([raw_scores_pos, pos_score], axis=1)
             raw_scores_neg = neg_score if raw_scores_neg is None else tf.concat([raw_scores_neg, neg_score], axis=1)
 
             expand_predict_score = tf.expand_dims(predict_score, -1)
-            print("pos_score:", pos_score)
-            print("predict_score:", predict_score)
-            print("expand_predict_score:", expand_predict_score)
             raw_scores_predict = expand_predict_score if raw_scores_predict is None else tf.concat([raw_scores_predict, expand_predict_score], axis=1)
-            print("raw_scores_predict:", raw_scores_predict)
 
             reg_loss_emb += tf.nn.l2_loss(ebs)
 
             print("embed_pos_item", embed_pos_item)
             print("pos_score:", pos_score)
-            print("bias_pos", bias_pos)
 
-        reg_loss_bias = tf.nn.l2_loss(track_bias)
-
-        scores_pos = self.get_attentive_scores(raw_scores_pos) + bias_pos
-        scores_neg = self.get_attentive_scores(raw_scores_neg) + bias_neg
-        scores_predict = self.get_attentive_scores(raw_scores_predict) + bias_predict_embedding
+        scores_pos = self.get_attentive_scores(raw_scores_pos)
+        scores_neg = self.get_attentive_scores(raw_scores_neg)
+        scores_predict = self.get_attentive_scores(raw_scores_predict)
         print("scores_pos: ", scores_pos)
         print("scores_predict: ", scores_predict)
-        return scores_pos, scores_neg, scores_predict, reg_loss_emb, reg_loss_bias
+        return scores_pos, scores_neg, scores_predict, reg_loss_emb
+
 
     def build_model(self):
         super().build_model()
@@ -108,21 +94,17 @@ class MDR_G6_att(ModelUPT):
         self.X_playlist_predict = tf.placeholder(tf.int32, shape=(1), name="x_playlist_predict")
         self.X_items_predict = tf.placeholder(tf.int32, shape=(101), name="x_items_predict")
 
-        # Loss, optimizer definition for training.
+        # embeddings
         ebs0 = self.get_init_embeddings()
         ebs1, ebs2, ebs3 = self.build_graph_layers(ebs0)
         ebs_list = [ebs0, ebs1, ebs2, ebs3]
+        self.t_pos_score, self.t_neg_score, self.t_predict, reg_loss_emb = self.get_layers_scores(ebs_list)
 
-        B1 = tf.Variable(self.initializer([self.embedding_size]))
-        B2 = tf.Variable(self.initializer([self.embedding_size]))
-        self.t_pos_score, self.t_neg_score, self.t_predict, reg_loss_emb, reg_loss_bias = self.get_layers_scores(ebs_list, B1, B2)
-        print("t_predict", self.t_predict)
         self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)))
-
-        reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
-        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_bias + reg_loss_B + self.t_weight_loss)
+        self.t_reg_loss = self.reg_rate * (reg_loss_emb)
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
+        print("t_predict", self.t_predict)
 
     def train_batch(self, batch):
         for key, batch_value in batch.items():

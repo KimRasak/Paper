@@ -220,7 +220,7 @@ class BaseModel(metaclass=ABCMeta):
 
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2)
             self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
-            new_embeddings = tf.nn.leaky_relu(aggregate)
+            new_embeddings = tf.nn.selu(aggregate)
             print("graph pt 2. new_embeddings:", new_embeddings)
         else:
             W1 = tf.Variable(self.initializer([eb_size1, eb_size2]))
@@ -240,7 +240,7 @@ class BaseModel(metaclass=ABCMeta):
 
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4)
             self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
-            new_embeddings = tf.nn.leaky_relu(tf.concat([aggregate1, aggregate2], axis=0))
+            new_embeddings = tf.nn.selu(tf.concat([aggregate1, aggregate2], axis=0))
             print("graph pt 4. new_embeddings:", new_embeddings)
 
         return new_embeddings

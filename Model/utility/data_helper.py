@@ -91,10 +91,11 @@ def sample_neg_track_for_playlist(playlist: int, pt: dict, n_track):
     return neg_track
 
 class Data():
-    def __init__(self, path, pick=True, laplacian_mode="PT", batch_size=256, reductive_ut=True):
+    def __init__(self, path, pick=True, laplacian_mode="PT", batch_size=256, reductive_ut=True, alpha=0.5):
         t0 = time()
         self.path = path
         self.batch_size = batch_size
+        self.alpha = alpha
 
         if pick is True:
             print("{pick} == %r, Using picked playlist data. That is, you're using a sub-dataset" % pick)
@@ -154,7 +155,7 @@ class Data():
                     for tid in tids:
                         self.R_pt[pid, tid] = 1
                         if reductive_ut:
-                            self.R_ut[uid, tid] = 1
+                            self.R_ut[uid, tid] = self.alpha
                     # Add element to up
                     if uid not in self.up:
                         self.up[uid] = [pid]
@@ -203,7 +204,6 @@ class Data():
             self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (m+n * m+n)
             self.L_u = self.L[:self.n_user, :]
             self.L_t = self.L[self.n_user:, :]
-
 
             self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
             self.LI_u = self.LI[:self.n_user, :]
