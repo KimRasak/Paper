@@ -10,9 +10,6 @@ NGCF_PT only uses playlist and track embeddings to model the recommendation,
 but may train user, playlist, track embeddings. (depending on the implementation)  
 """
 class NGCF_PT(ModelPT):
-    def __init__(self, num_epoch, data: Data):
-        super().__init__(num_epoch, data)
-
     def build_graph_layers(self, embeddings):
         embeddings1 = self.build_graph_PT(embeddings, self.embedding_size, self.embedding_size, num_weight=2)
         embeddings2 = self.build_graph_PT(embeddings1, self.embedding_size, self.embedding_size, num_weight=2)

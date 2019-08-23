@@ -102,9 +102,9 @@ def split_train_test(playlist_data: dict, train_filepath, test_filepath, num_use
 
 
 if __name__ == '__main__':
-    p_filepath = '30music/pick_playlist.txt'
-    train_filepath = '30music/pick_train.txt'
-    test_filepath = '30music/pick_test.txt'
+    p_filepath = '30music/playlist.txt'
+    train_filepath = '30music/train.txt'
+    test_filepath = '30music/test.txt'
     p_data, num_user, num_playlist, num_track = read_playlist(p_filepath)
     split_train_test(p_data, train_filepath, test_filepath, num_user, num_playlist, num_track)
 

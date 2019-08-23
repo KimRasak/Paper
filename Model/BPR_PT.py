@@ -5,9 +5,6 @@ from Model.utility.data_helper import Data
 
 
 class BPR_PT(ModelPT):
-    def __init__(self, num_epoch, data: Data):
-        super().__init__(num_epoch, data)
-
     def build_model(self):
         super().build_model()
 
