@@ -97,8 +97,5 @@ n = a
 print(i)
 print(-ex, n)
 
-for i in range(1, 5):
-    print(i, " ")
-
-with open("test.txt", "a+") as f:
-    f.write("ee%de" % 5)
+st = "ss/dd/gg"
+print(st.split("/")[-1])

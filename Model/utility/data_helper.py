@@ -118,6 +118,7 @@ class Data():
     def __init__(self, path, pick=True, laplacian_mode="PT", batch_size=256, reductive_ut=True, alpha=0.5):
         t0 = time()
         self.path = path
+        self.dataset_name = path.split("/")[-1]
         self.batch_size = batch_size
         self.alpha = alpha
 
