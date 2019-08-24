@@ -48,3 +48,6 @@ ndcg_k: 0.009269 0.015760 0.020745 0.024960 0.028871 0.032447 0.035796 0.039074 
 [epoch0-batch13200] complete, score_loss: 354.91934 
 [epoch0-batch13500] complete, score_loss: 354.91937 
 [epoch0-batch13800] complete, score_loss: 354.9193 
+[epoch0-batch14100] complete, score_loss: 354.9192 
+[epoch0-batch14400] complete, score_loss: 354.91925 
+Epoch complete. Print total loss. score_loss: 17519.007812 

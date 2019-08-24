@@ -54,7 +54,7 @@ class BPR_PT(ModelPT):
         })
 
         return {
-            "score_loss": loss,
+            "loss": loss,
             "pos_score": neg_score,
             "neg_score": neg_score
         }
