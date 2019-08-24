@@ -5,6 +5,9 @@ from Model.utility.data_helper import Data
 
 
 class BPR_PT(ModelPT):
+    def get_init_embeddings(self):
+        return None
+
     def build_model(self):
         super().build_model()
 
@@ -19,8 +22,8 @@ class BPR_PT(ModelPT):
         self.X_items_predict = tf.placeholder(tf.int32, shape=(101), name="x_items_predict")
 
         # Loss, optimizer definition for training.
-        playlist_embedding = tf.Variable(tf.truncated_normal(shape=[self.data.n_playlist, self.embedding_size], mean=0.0, stddev=0.5))
-        track_embedding = tf.Variable(tf.truncated_normal(shape=[self.data.n_track, self.embedding_size], mean=0.0, stddev=0.5))
+        playlist_embedding = tf.Variable(self.initializer([self.data.n_playlist, self.embedding_size]))
+        track_embedding = tf.Variable(self.initializer([self.data.n_track, self.embedding_size]))
 
         embed_playlist = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist)
         embed_pos_item = tf.nn.embedding_lookup(track_embedding, self.X_pos_item)
@@ -29,12 +32,11 @@ class BPR_PT(ModelPT):
         self.t_pos_score = tf.matmul(embed_playlist, embed_pos_item, transpose_b=True)
         self.t_neg_score = tf.matmul(embed_playlist, embed_neg_item, transpose_b=True)
 
-        self.t_mf_loss = tf.reduce_mean(-tf.log(tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)))
+        self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)))
 
         self.t_reg_loss = tf.nn.l2_loss(playlist_embedding) + tf.nn.l2_loss(track_embedding)
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
-        # self.print_loss = tf.print("loss: ", self.loss, output_stream=sys.stdout)
 
         # Output for testing/predicting
         predict_playlist_embed = tf.nn.embedding_lookup(playlist_embedding, self.X_playlist_predict)
@@ -44,6 +46,7 @@ class BPR_PT(ModelPT):
     def train_batch(self, batch):
         for key, batch_value in batch.items():
             batch[key] = np.array(batch_value).reshape(-1, 1)
+
         opt, loss, pos_score, neg_score = self.sess.run([self.t_opt, self.t_loss, self.t_pos_score, self.t_neg_score], feed_dict={
             self.X_playlist: batch["playlists"],
             self.X_pos_item: batch["pos_tracks"],
