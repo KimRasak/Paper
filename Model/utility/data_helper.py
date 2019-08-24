@@ -40,6 +40,12 @@ def get_laplacian(A: sp.spmatrix, A0=None):
     return L.tocsr()
 
 
+def set_maxtrix_value(A, R, m_offset, n_offset, alpha=1.0):
+    cx = R.tocoo()
+    for i, j, v in zip(cx.row, cx.col, cx.data):
+        A[i + m_offset, j + n_offset] = v * alpha
+        A[j + n_offset, i + m_offset] = v * alpha
+
 def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix, alpha):  # Get matrix "A" among user-playlist-track relationship.
     """
     A = [ 0      R_up   R_ut
@@ -57,24 +63,30 @@ def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix, alpha):  # 
     l = R_ut.shape[1]  # Number of tracks.
 
     A = sp.lil_matrix((m+n+l, m+n+l), dtype=np.float32)
-    A[:m, m:m+n] = R_up  # (m * n)
-    A[:m, m+n:] = R_ut  # (m * l)
-    A[m:m+n, m+n:] = R_pt  # (n * l)
-
-    A[m:m+n, :m] = R_up.T  # (n * m)
-    A[m+n:, :m] = R_ut.T  # (l * m)
-    A[m+n:, m:m+n] = R_pt.T  # (l * n)
+    set_maxtrix_value(A, R_up, 0, n)
+    set_maxtrix_value(A, R_ut, 0, m+n)
+    set_maxtrix_value(A, R_pt, m, m+n)
+    # A[:m, m:m+n] = R_up  # (m * n)
+    # A[:m, m+n:] = R_ut  # (m * l)
+    # A[m:m+n, m+n:] = R_pt  # (n * l)
+    #
+    # A[m:m+n, :m] = R_up.T  # (n * m)
+    # A[m+n:, :m] = R_ut.T  # (l * m)
+    # A[m+n:, m:m+n] = R_pt.T  # (l * n)
 
     A0 = None
     if alpha != 1:
         A0 = sp.lil_matrix((m+n+l, m+n+l), dtype=np.float32)
-        A0[:m, m:m+n] = R_up  # (m * n)
-        A0[:m, m+n:] = R_ut * alpha  # (m * l)
-        A0[m:m+n, m+n:] = R_pt  # (n * l)
-
-        A0[m:m+n, :m] = R_up.T  # (n * m)
-        A0[m+n:, :m] = R_ut.T  # (l * m)
-        A0[m+n:, m:m+n] = R_pt.T  # (l * n)
+        set_maxtrix_value(A, R_up, 0, n)
+        set_maxtrix_value(A, R_ut, 0, m+n, alpha=alpha)
+        set_maxtrix_value(A, R_pt, m, m+n)
+        # A0[:m, m:m+n] = R_up  # (m * n)
+        # A0[:m, m+n:] = R_ut * alpha  # (m * l)
+        # A0[m:m+n, m+n:] = R_pt  # (n * l)
+        #
+        # A0[m:m+n, :m] = R_up.T  # (n * m)
+        # A0[m+n:, :m] = R_ut.T  # (l * m)
+        # A0[m+n:, m:m+n] = R_pt.T  # (l * n)
     print('Used %d seconds. Already create adjacency matrix(A_3). shape of A: %r' % (time() - t, A.shape))
     return A, A0
 
@@ -86,8 +98,7 @@ def get_A_2(R: sp.spmatrix):  # Get matrix "A" between user-item relationship.
 
     A = sp.lil_matrix((m + n, m + n), dtype=np.float32)
 
-    A[:m, m:] = R
-    A[m:, :m] = R.T
+    set_maxtrix_value(A, R, 0, m)
     print('Used %d seconds. Already create adjacency matrix(A_2). shape of A: %r' % (time() - t, A.shape))
     return A
 

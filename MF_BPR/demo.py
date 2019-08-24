@@ -47,8 +47,8 @@ import scipy.sparse as sp
 
 # import tensorflow as tf
 # sess = tf.Session()
-# # W0 = tf.constant(1, shape=[1, 2])
-# # W1 = tf.constant(3, shape=[2, 2])
+# W0 = tf.constant(1, shape=[1, 2])
+# W1 = tf.constant(3, shape=[2, 2])
 # # a = 0 + tf.square(W0 - W1)
 # eb = tf.Variable(tf.truncated_normal(shape=[4, 7]))
 # t1 = tf.nn.embedding_lookup(eb, [2])
@@ -58,7 +58,29 @@ import scipy.sparse as sp
 # print(sess.run(eb[2:]))
 # print(sess.run(eb[2:, :]))
 
-di = {(1, 2): [3, 4, 5]}
-for k, v in di.items():
-    print(k, v)
 
+num_user = 3
+num_item = 4
+num_all = num_user + num_item
+R: sp.dok_matrix = sp.dok_matrix((num_user, num_item), dtype=np.float32).tolil()
+R[0, 1] = 1
+R[0, 2] = 1
+R[0, 3] = 1
+R[1, 2] = 1
+R[1, 3] = 1
+A = sp.dok_matrix((num_all, num_all), dtype=np.float32)
+A[:num_user, num_user:] = R
+A[num_user:, :num_user] = R.T
+print("A", A)
+
+B = sp.dok_matrix((num_all, num_all), dtype=np.float32)
+print(B)
+cx = R.tocoo()
+print("cx", cx)
+for i, j, v in zip(cx.row, cx.col, cx.data):
+    print(i, j, num_user, j + num_user, v)
+    B[i, j + num_user] = v
+    B[j + num_user, i] = v
+    # B[i, j + num_user] = cx.data
+    # B[j + num_user, i] = cx.data
+print(B)
