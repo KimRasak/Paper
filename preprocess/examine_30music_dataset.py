@@ -1,5 +1,5 @@
 import numpy as np
-from preprocess.data_helper import read_30music_playlists, filter_playlist_data
+from preprocess.data_helper import read_30music_playlists, filter_playlist_data, get_playlist_ids
 
 """
 本文将读取30music数据集，并对其完整性进行检查。
@@ -38,18 +38,24 @@ our models. The two datasets are implicit feedback datasets.
 
 """
 
-
-def check_playlist_data(data, output_filepath='../data/30music/playlist_distribution.txt'):
-    print("-----Checking playlist data-----")
+def count_playlist_data(data):
     num_users = len(data.keys())
     num_playlists = sum([len(p.keys()) for p in data.values()])
 
     tids = set()
+    num_interactions = 0
     for uid, user in data.items():
         for pid, user_tids in user.items():
             for tid in user_tids:
                 tids.add(tid)
+                num_interactions += 1
     num_tracks = len(tids)
+    return num_users, num_playlists, num_tracks, num_interactions
+
+
+def check_playlist_data(data, output_filepath='../data/30music/playlist_distribution.txt'):
+    print("-----Checking playlist data-----")
+    num_users, num_playlists, num_tracks, num_interactions = count_playlist_data(data)
 
     # Check number of every user's playlist.
     distribution_user_num_playlist = {}
@@ -79,8 +85,6 @@ def check_playlist_data(data, output_filepath='../data/30music/playlist_distribu
     if num_below_5 > 0:
         print("Number of playlists below 5:", num_below_5)
 
-    num_interactions = sum(num_range * num for num_range, num in distribution_playlist_num_track.items())
-
     print("There are %d users, %d playlists and %d tracks. There are %d user-playlist-song interactions." % (num_users, num_playlists, num_tracks, num_interactions))
 
     with open(output_filepath, 'w') as f:
@@ -94,8 +98,15 @@ def check_playlist_data(data, output_filepath='../data/30music/playlist_distribu
 
 
 if __name__ == '__main__':
-    playlist_data, _, _ = read_30music_playlists()
-    playlist_data = filter_playlist_data(playlist_data)
+    playlist_data, _, _, _ = read_30music_playlists()
+    uids, pids, tids, num_playlist_interactions = get_playlist_ids(playlist_data)
+    print("There are %d users, %d playlists and %d tracks. There are %d user-playlist-song interactions." % (len(uids), len(pids), len(tids), num_playlist_interactions))
+
+    filter_playlist_data(playlist_data)
     print("Filter data...")
     check_playlist_data(playlist_data)
-
+    # 30music whole dataset
+    # There are 15102 users, 48422 playlists and 466244 tracks. There are 1602290 user-playlist-song interactions.
+    # Filter data...
+    # -----Checking playlist data-----
+    # There are 13417 users, 39524 playlists and 461383 tracks. There are 1579282 user-playlist-song interactions.

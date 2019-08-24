@@ -9,10 +9,30 @@ from Model.utility.data_helper import Data
 from Model.utility.batch_test import test
 
 
-def hr_k(predicts, top_k, idx_test_tid):
-    sorted_idx = np.argsort(predicts)[-top_k:]
-    return idx_test_tid in sorted_idx
+def get_metric(ranklist, gt_item):
+    return get_hit_ratio(ranklist, gt_item), get_ndcg(ranklist, gt_item)
 
+def get_hit_ratio(ranklist, gt_item):
+    for item in ranklist:
+        if item == gt_item:
+            return 1
+    return 0
+
+def get_ndcg(ranklist, gt_item):
+    for i in range(len(ranklist)):
+        item = ranklist[i]
+        if item == gt_item:
+            return np.log(2) / np.log(i + 2)
+    return 0
+
+def get_base_index(i):
+    a = i
+    index = 0
+    while a < 1:
+        a *= 10
+        index += 1
+    base = a
+    return base, index
 
 def convert_sp_mat_to_sp_tensor(X):
     if X.getnnz() == 0:
@@ -25,7 +45,7 @@ def convert_sp_mat_to_sp_tensor(X):
 
 
 class BaseModel(metaclass=ABCMeta):
-    def __init__(self, num_epoch, data: Data, output_path="../output.txt",
+    def __init__(self, num_epoch, data: Data, output_path="./output.txt",
                  n_save_batch_loss=300, embedding_size=64, learning_rate=2e-4, reg_rate=5e-5):
         self.num_epoch = num_epoch
         self.data = data
@@ -39,6 +59,7 @@ class BaseModel(metaclass=ABCMeta):
         self.initializer = tf.contrib.layers.xavier_initializer()
 
         self.class_name = self.__class__.__name__
+        self.model_name = self.get_model_name()
         self.build_model()
         self.create_session()
         self.restore_model()
@@ -116,9 +137,19 @@ class BaseModel(metaclass=ABCMeta):
         self.sess.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
 
+    def get_model_name(self):
+        base_lr, index_lr = get_base_index(self.learning_rate)
+        base_rr, index_rr = get_base_index(self.reg_rate)
+        eb_size = self.embedding_size
+
+        model_name = "%s_eb%d_lr%de-%d_rr%de-%d" % (self.class_name, eb_size, base_lr, index_lr, base_rr, index_rr)
+        # file_path = "./%s_eb%d_lr%de-%d_rr%de-%d.txt" % (self.class_name, eb_size, base_lr, index_lr, base_rr, index_rr)
+        # self.output_file = open(file_path, "a+")
+        return model_name
+
     def restore_model(self):
         # Restore model.
-        self.model_folder_path = os.path.join('cpkt/', self.class_name)
+        self.model_folder_path = os.path.join('cpkt/', self.model_name)
         ckpt = tf.train.get_checkpoint_state(self.model_folder_path)
         if ckpt and ckpt.model_checkpoint_path:
             self.saver.restore(self.sess, ckpt.model_checkpoint_path)
@@ -140,7 +171,10 @@ class BaseModel(metaclass=ABCMeta):
         pass
 
     def test(self, i_epoch):
-        hr_10s = []
+        max_K = 20
+        hrs = {i: [] for i in range(1, max_K+1)}
+        ndcgs = {i: [] for i in range(1, max_K+1)}
+
         t1 = time()
         for uid, user in self.data.test_set.items():
             for pid, tids in user.items():
@@ -150,10 +184,17 @@ class BaseModel(metaclass=ABCMeta):
                     input_tids.extend(hundred_neg_tids)
 
                     predicts = self.test_predict(uid, pid, input_tids)
-                    hr_10s.append(hr_k(predicts, 10, 0))
+                    sorted_idx = np.argsort(-predicts)
+                    for k in range(1, max_K+1):
+                        indices = sorted_idx[:k]  # indices of items with highest scores
+                        ranklist = predicts[indices]
+                        hr_k, ndcg_k = get_metric(ranklist, predicts[0])
+                        hrs[k].append(hr_k)
+                        ndcgs[k].append(ndcg_k)
         test_time = time() - t1
-        output_str = "Epoch %d complete. Used %d seconds, hr_10: %f" % (i_epoch, test_time, np.average(hr_10s))
+        output_str = "Epoch %d complete. Used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
         self.print_and_append_record(output_str)
+        self.append_metric_record(hrs, ndcgs, max_K)
 
     @abstractmethod
     def test_predict(self, uid, pid, tids):
@@ -166,6 +207,8 @@ class BaseModel(metaclass=ABCMeta):
 
     def global_init(self):
         self.output = []
+        self.output_file = open("%s.txt" % self.model_name, "a+")
+
 
     @abstractmethod
     def train_batch(self, batch: dict) -> dict:
@@ -187,7 +230,11 @@ class BaseModel(metaclass=ABCMeta):
         if "batch_time" in result:
             print("Batch session used %d seconds." % result["batch_time"])
 
-        self.print_and_append_record(output_str)
+        if i_batch == 0:
+            self.print_and_append_record(output_str)
+        else:
+            self.print_and_append_record(output_str, write_file=False)
+
 
     def epoch_init(self):
         self.total_loss = {}
@@ -198,10 +245,27 @@ class BaseModel(metaclass=ABCMeta):
             output_str += "%s: %f " % (loss_name, loss_value)
         self.print_and_append_record(output_str)
 
-    def print_and_append_record(self, output_str):
+    def append_metric_record(self, hrs, ndcgs, max_K):
+        self.output_file.write("hr_k: ")
+        for i in range(1, max_K+1):
+            hr_k = np.average(hrs[i])
+            self.output_file.write("%f " % hr_k)
+        self.output_file.write("\n")
+
+        self.output_file.write("ndcg_k: ")
+        for i in range(1, max_K+1):
+            ndcg_k = np.average(ndcgs[i])
+            self.output_file.write("%f " % ndcg_k)
+        self.output_file.write("\n")
+
+
+    def print_and_append_record(self, output_str, write_file=True):
         print(output_str)
         output_str += "\n"
         self.output.append(output_str)
+        if write_file:
+            self.output_file.write(output_str)
+            self.output_file.flush()
 
     @abstractmethod
     def get_init_embeddings(self):

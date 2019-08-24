@@ -132,7 +132,7 @@ def read_aotm_playlists(filepath="../raw-data/aotm/aotm2011_playlists.json"):
         for playlist in raw_playlists:
             pid = playlist['mix_id']
             username = playlist['user']['name']
-            tracks = [(t[0][0], t[0][1]) for t in playlist['playlist']]
+            tracks = {(t[0][0], t[0][1]) for t in playlist['playlist']}
 
             if username not in data:
                 data[username] = {}
@@ -351,3 +351,6 @@ if __name__ == '__main__':
     pick_p_filepath = "../data/aotm/pick_playlist.txt"
     pick_e_filepath = "../data/aotm/pick_events.txt"
     save_data(pick_playlist_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)
+    # aotm filtered data.
+    # The dataset has 15863 user ids, 100013 playlist ids, 970678 track ids and 1981525 interactions
+    # generate_subset: The [sub]-dataset has 6974 user ids, 20002 playlist ids, 270124 track ids and 396295 interactions

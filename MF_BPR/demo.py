@@ -59,28 +59,46 @@ import scipy.sparse as sp
 # print(sess.run(eb[2:, :]))
 
 
-num_user = 3
-num_item = 4
-num_all = num_user + num_item
-R: sp.dok_matrix = sp.dok_matrix((num_user, num_item), dtype=np.float32).tolil()
-R[0, 1] = 1
-R[0, 2] = 1
-R[0, 3] = 1
-R[1, 2] = 1
-R[1, 3] = 1
-A = sp.dok_matrix((num_all, num_all), dtype=np.float32)
-A[:num_user, num_user:] = R
-A[num_user:, :num_user] = R.T
-print("A", A)
+# num_user = 3
+# num_item = 4
+# num_all = num_user + num_item
+# R: sp.dok_matrix = sp.dok_matrix((num_user, num_item), dtype=np.float32).tolil()
+# R[0, 1] = 1
+# R[0, 2] = 1
+# R[0, 3] = 1
+# R[1, 2] = 1
+# R[1, 3] = 1
+# A = sp.dok_matrix((num_all, num_all), dtype=np.float32)
+# A[:num_user, num_user:] = R
+# A[num_user:, :num_user] = R.T
+# print("A", A)
+#
+# B = sp.dok_matrix((num_all, num_all), dtype=np.float32)
+# print(B)
+# cx = R.tocoo()
+# print("cx", cx)
+# for i, j, v in zip(cx.row, cx.col, cx.data):
+#     print(i, j, num_user, j + num_user, v)
+#     B[i, j + num_user] = v
+#     B[j + num_user, i] = v
+#     # B[i, j + num_user] = cx.data
+#     # B[j + num_user, i] = cx.data
+# print(B)
 
-B = sp.dok_matrix((num_all, num_all), dtype=np.float32)
-print(B)
-cx = R.tocoo()
-print("cx", cx)
-for i, j, v in zip(cx.row, cx.col, cx.data):
-    print(i, j, num_user, j + num_user, v)
-    B[i, j + num_user] = v
-    B[j + num_user, i] = v
-    # B[i, j + num_user] = cx.data
-    # B[j + num_user, i] = cx.data
-print(B)
+i = 1e-3
+
+a = i
+ex = 0
+n = 0
+while a < 1:
+    a *= 10
+    ex += 1
+n = a
+print(i)
+print(-ex, n)
+
+for i in range(1, 5):
+    print(i, " ")
+
+with open("test.txt", "a+") as f:
+    f.write("ee%de" % 5)
