@@ -238,9 +238,10 @@ class BaseModel(metaclass=ABCMeta):
 
     def epoch_init(self):
         self.total_loss = {}
+        self.epoch_t0 = time()
 
     def output_total_loss(self):
-        output_str = "Epoch complete. Print total loss. "
+        output_str = "Epoch complete. Used %d seconds. Print total loss. " % (time() - self.epoch_t0)
         for loss_name, loss_value in self.total_loss.items():
             output_str += "%s: %f " % (loss_name, loss_value)
         self.print_and_append_record(output_str)

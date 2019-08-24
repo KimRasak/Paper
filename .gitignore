@@ -1,11 +1,11 @@
-raw-data
+raw-data/
 *.idomaar
 *.xml
 *.iml
 *.mtx
-cpkt
+cpkt/
 train_t.py
 *.pyc
 Model/__pycache__/*.pyc
 Model/utility/__pycache__/*.pyc
-*lr*rr*.txt
+*rr*.txt
