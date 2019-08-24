@@ -35,7 +35,7 @@ class BPR_PT(ModelPT):
         self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)))
 
         self.t_reg_loss = tf.nn.l2_loss(playlist_embedding) + tf.nn.l2_loss(track_embedding)
-        self.t_loss = self.t_mf_loss + self.t_reg_loss
+        self.t_loss = self.t_mf_loss + self.reg_rate * self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
 
         # Output for testing/predicting
