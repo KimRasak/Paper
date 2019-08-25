@@ -183,11 +183,14 @@ class BaseModel(metaclass=ABCMeta):
         for uid, user in self.data.test_set.items():
             for pid, tids in user.items():
                 for tid in tids:
+                    test_t1 = time()
                     input_tids = [tid]
                     hundred_neg_tids = self.data.sample_hundred_negative_item(pid)
                     input_tids.extend(hundred_neg_tids)
+                    test_t2 = time()
 
                     predicts = self.test_predict(uid, pid, input_tids)
+                    test_t3 = time()
                     sorted_idx = np.argsort(-predicts)
                     for k in range(1, max_K+1):
                         indices = sorted_idx[:k]  # indices of items with highest scores
@@ -195,10 +198,11 @@ class BaseModel(metaclass=ABCMeta):
                         hr_k, ndcg_k = get_metric(ranklist, predicts[0])
                         hrs[k].append(hr_k)
                         ndcgs[k].append(ndcg_k)
-
+                    test_t4 = time()
                     num_tested += 1
                     if num_tested % 2000 == 0:
                         print("Tested %d pairs. Used %d seconds." % (num_tested, time() - test_t0))
+                        print("Test time use: %d %d %d" % (test_t2 - test_t1, test_t3 - test_t2, test_t4 - test_t3))
                         test_t0 = time()
         test_time = time() - t1
         output_str = "Epoch %d complete. Testing used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
