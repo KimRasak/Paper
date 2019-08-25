@@ -10,4 +10,5 @@ Model/__pycache__/
 Model/utility/__pycache__/
 Model/__pycache__/*.pyc
 Model/utility/__pycache__/*.pyc
+train*.py
 *rr*.txt
