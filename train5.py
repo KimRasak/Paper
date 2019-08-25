@@ -10,3 +10,5 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     data = Data(path, pick=False, batch_size=batch_size, laplacian_mode="UPT", reductive_ut=True)
     model = MDR_G6_att(num_epoch, data, embedding_size=64, learning_rate=1e-3, reg_rate=1e-3)
+    print("Start training...")
+    model.fit()

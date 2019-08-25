@@ -110,10 +110,11 @@ class BaseModel(metaclass=ABCMeta):
 
     def fit(self):
         self.global_init()
+        self.test(0)
         for i_epoch in range(self.num_epoch):
             self.epoch_init()
-            self.test(i_epoch)
             self.train_epoch(i_epoch)
+            self.test(i_epoch)
             self.save_model(i_epoch)
         self.save_output()
 
@@ -174,7 +175,6 @@ class BaseModel(metaclass=ABCMeta):
         max_K = 20
         hrs = {i: [] for i in range(1, max_K+1)}
         ndcgs = {i: [] for i in range(1, max_K+1)}
-
         t1 = time()
         for uid, user in self.data.test_set.items():
             for pid, tids in user.items():
@@ -192,7 +192,7 @@ class BaseModel(metaclass=ABCMeta):
                         hrs[k].append(hr_k)
                         ndcgs[k].append(ndcg_k)
         test_time = time() - t1
-        output_str = "Epoch %d complete. Used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
+        output_str = "Epoch %d complete. Testing used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
         self.print_and_append_record(output_str)
         self.append_metric_record(hrs, ndcgs, max_K)
 

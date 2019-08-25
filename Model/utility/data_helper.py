@@ -117,7 +117,7 @@ def sample_neg_track_for_playlist(playlist: int, pt: dict, n_track):
     return neg_track
 
 class Data():
-    def __init__(self, path, pick=True, laplacian_mode="PT", batch_size=256, reductive_ut=True, alpha=0.5):
+    def __init__(self, path, pick=True, laplacian_mode="PT", batch_size=256, reductive_ut=True, alpha=1):
         t0 = time()
         self.path = path
         self.dataset_name = path.split("/")[-1]
