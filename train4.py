@@ -9,10 +9,11 @@ from Model.utility.data_helper import Data
 import tensorflow as tf
 
 if __name__ == '__main__':
-    path = "./data/30music"
+    path = "./data/aotm"
     num_epoch = 300
-    batch_size = 1
+    batch_size = 512
 
-    data = Data(path, batch_size=batch_size, laplacian_mode="UPT", reductive_ut=True)
+    data = Data(path, pick=False, batch_size=batch_size, laplacian_mode="UPT", reductive_ut=True)
     model = MDR_G6(num_epoch, data)
+    print("Start training...")
     model.fit()

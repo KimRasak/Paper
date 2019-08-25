@@ -176,6 +176,7 @@ class BaseModel(metaclass=ABCMeta):
         hrs = {i: [] for i in range(1, max_K+1)}
         ndcgs = {i: [] for i in range(1, max_K+1)}
         t1 = time()
+        num_tested = 0
         for uid, user in self.data.test_set.items():
             for pid, tids in user.items():
                 for tid in tids:
@@ -191,6 +192,10 @@ class BaseModel(metaclass=ABCMeta):
                         hr_k, ndcg_k = get_metric(ranklist, predicts[0])
                         hrs[k].append(hr_k)
                         ndcgs[k].append(ndcg_k)
+
+                    num_tested += 1
+                    if num_tested % 2000 == 0:
+                        print("Tested %d pairs." % num_tested)
         test_time = time() - t1
         output_str = "Epoch %d complete. Testing used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
         self.print_and_append_record(output_str)

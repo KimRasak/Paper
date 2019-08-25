@@ -45,6 +45,7 @@ def get_laplacian(A: sp.spmatrix, A0=None):
 def set_maxtrix_value(A, R, m_offset, n_offset, alpha=1):
     cx = R.tocoo()
     for i, j, v in zip(cx.row, cx.col, cx.data):
+        assert v == 1
         A[i + m_offset, j + n_offset] = alpha
         A[j + n_offset, i + m_offset] = alpha
 
