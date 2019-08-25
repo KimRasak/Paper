@@ -96,6 +96,10 @@ while a < 1:
 n = a
 print(i)
 print(-ex, n)
-
+a = 3
+b = [a]
+b += [a]
+a = 4
+print(b, "ddd")
 st = "ss/dd/gg"
 print(st.split("/")[-1])

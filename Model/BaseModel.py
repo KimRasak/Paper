@@ -43,10 +43,9 @@ def convert_sp_mat_to_sp_tensor(X):
 
     return tf.sparse.SparseTensor(indices, coo.data, dense_shape=X.shape)
 
-
 class BaseModel(metaclass=ABCMeta):
     def __init__(self, num_epoch, data: Data, output_path="./output.txt",
-                 n_save_batch_loss=300, embedding_size=64, learning_rate=2e-4, reg_rate=5e-5):
+                 n_save_batch_loss=300, embedding_size=64, learning_rate=2e-4, reg_rate=5e-5, ngcf2=False):
         self.num_epoch = num_epoch
         self.data = data
         self.output_path = output_path
@@ -54,8 +53,9 @@ class BaseModel(metaclass=ABCMeta):
         self.embedding_size = embedding_size
         self.learning_rate = learning_rate
         self.reg_rate = reg_rate
+        self.ngcf2 = ngcf2
 
-        self.t_weight_loss = None
+        self.t_weight_loss = 0
         self.initializer = tf.contrib.layers.xavier_initializer()
 
         self.class_name = self.__class__.__name__
@@ -65,6 +65,8 @@ class BaseModel(metaclass=ABCMeta):
         self.restore_model()
 
     def build_model(self):
+        if self.ngcf2:
+            return
         laplacian_mode = self.data.laplacian_mode
         if laplacian_mode == "PT":
             self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (n+l * n+l)
@@ -94,7 +96,7 @@ class BaseModel(metaclass=ABCMeta):
             self.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
             self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
             self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
-        elif laplacian_mode == "Test":
+        elif laplacian_mode == "TestPT" or laplacian_mode == "TestUPT":
             self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (n+l * n+l)
             if hasattr(self.data, "L_u"):
                 self.L_u = convert_sp_mat_to_sp_tensor(self.data.L_u)
@@ -177,6 +179,7 @@ class BaseModel(metaclass=ABCMeta):
         ndcgs = {i: [] for i in range(1, max_K+1)}
         t1 = time()
         num_tested = 0
+        test_t0 = time()
         for uid, user in self.data.test_set.items():
             for pid, tids in user.items():
                 for tid in tids:
@@ -195,7 +198,8 @@ class BaseModel(metaclass=ABCMeta):
 
                     num_tested += 1
                     if num_tested % 2000 == 0:
-                        print("Tested %d pairs." % num_tested)
+                        print("Tested %d pairs. Used %d seconds." % (num_tested, time() - test_t0))
+                        test_t0 = time()
         test_time = time() - t1
         output_str = "Epoch %d complete. Testing used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
         self.print_and_append_record(output_str)
@@ -289,7 +293,7 @@ class BaseModel(metaclass=ABCMeta):
                         tf.matmul(tf.multiply(tf.sparse_tensor_dense_matmul(self.L, embeddings), embeddings), W2)
 
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2)
-            self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
+            self.t_weight_loss += w_loss
             new_embeddings = tf.nn.selu(aggregate)
             print("graph PT 2. new_embeddings:", new_embeddings)
         else:
@@ -311,7 +315,7 @@ class BaseModel(metaclass=ABCMeta):
             aggregate2 = tf.matmul(LI_T_emb, W3) + tf.matmul(L_T_emb_mul_emb, W4)
 
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4)
-            self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
+            self.t_weight_loss += w_loss
             new_embeddings = tf.nn.selu(tf.concat([aggregate1, aggregate2], axis=0))
             print("graph PT 4. new_embeddings:", new_embeddings)
 
@@ -346,7 +350,7 @@ class BaseModel(metaclass=ABCMeta):
             tf.multiply(tf.sparse_tensor_dense_matmul(self.L_t, embeddings), track_embeddings), W6)
 
         w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4) + tf.nn.l2_loss(W5) + tf.nn.l2_loss(W6)
-        self.t_weight_loss = w_loss if self.t_weight_loss is None else self.t_weight_loss + w_loss
+        self.t_weight_loss += w_loss
         new_embeddings = tf.nn.selu(tf.concat([aggregate1, aggregate2, aggregate3], axis=0))
         return new_embeddings
 

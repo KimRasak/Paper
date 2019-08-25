@@ -197,7 +197,7 @@ class Data():
         self.n_train = self.R_pt.getnnz()
         self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * 4
 
-        laplacian_modes = ["PT", "UT", "UPT", "None", "Test"]
+        laplacian_modes = ["PT", "UT", "UPT", "None", "TestPT", "TestUPT"]
         if laplacian_mode not in laplacian_modes:
             raise Exception("Wrong laplacian mode. Expected one of %r, got %r" % (laplacian_modes, laplacian_mode))
         print("laplacian_mode=%r, loading laplacian matrix." % laplacian_mode)
@@ -234,7 +234,7 @@ class Data():
             self.LI_u = self.LI[:self.n_user, :]
             self.LI_p = self.LI[self.n_user:self.n_user+self.n_playlist, :]
             self.LI_t = self.LI[self.n_user+self.n_playlist:, :]
-        elif laplacian_mode == "Test":
+        elif laplacian_mode == "TestUPT":
             self.A: sp.spmatrix = sp.lil_matrix((self.n_user + self.n_playlist + self.n_track, self.n_user + self.n_playlist + self.n_track), dtype=np.float32)
             self.L: sp.spmatrix = sp.lil_matrix((self.n_user + self.n_playlist + self.n_track, self.n_user + self.n_playlist + self.n_track), dtype=np.float32)
             self.L_u = self.L[:self.n_user, :]
@@ -245,15 +245,18 @@ class Data():
             self.LI_u = self.LI[:self.n_user, :]
             self.LI_p = self.LI[self.n_user:self.n_user + self.n_playlist, :]
             self.LI_t = self.LI[self.n_user + self.n_playlist:, :]
-            # self.A: sp.spmatrix = sp.lil_matrix((self.n_playlist + self.n_track, self.n_user + self.n_track), dtype=np.float32)  # (n * l)
-            #
-            # self.L: sp.spmatrix = sp.lil_matrix((self.n_playlist + self.n_track, self.n_playlist + self.n_track), dtype=np.float32)  # Normalized laplacian matrix of A. (n+l * n+l)
-            # self.L_p = self.L[:self.n_playlist, :]
-            # self.L_t = self.L[self.n_playlist:, :]
-            #
-            # self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
-            # self.LI_p = self.LI[:self.n_playlist, :]
-            # self.LI_t = self.LI[self.n_playlist:, :]
+        elif laplacian_mode == "TestPT":
+            self.A: sp.spmatrix = sp.lil_matrix((self.n_playlist + self.n_track, self.n_user + self.n_track),
+                                                dtype=np.float32)  # (n * l)
+
+            self.L: sp.spmatrix = sp.lil_matrix((self.n_playlist + self.n_track, self.n_playlist + self.n_track),
+                                                dtype=np.float32)  # Normalized laplacian matrix of A. (n+l * n+l)
+            self.L_p = self.L[:self.n_playlist, :]
+            self.L_t = self.L[self.n_playlist:, :]
+
+            self.LI: sp.spmatrix = self.L + sp.eye(self.L.shape[0])  # A + I. where I is the identity matrix.
+            self.LI_p = self.LI[:self.n_playlist, :]
+            self.LI_t = self.LI[self.n_playlist:, :]
         print("Read data used %d seconds in all." % (time() - t0))
         # self.laplacian_ut, laplacian_pt = self.get_laplacian(self.R_ut.tolil()), self.get_laplacian(self.R_pt.tolil())
 
