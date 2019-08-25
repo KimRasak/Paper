@@ -73,6 +73,7 @@ class MDR_G6_att(ModelUPT):
 
             expand_predict_score = tf.expand_dims(predict_score, -1)
             print("pos_score:", pos_score)
+            print("raw_scores_pos:", raw_scores_pos)
             print("predict_score:", predict_score)
             print("expand_predict_score:", expand_predict_score)
             raw_scores_predict = expand_predict_score if raw_scores_predict is None else tf.concat([raw_scores_predict, expand_predict_score], axis=1)
@@ -86,10 +87,16 @@ class MDR_G6_att(ModelUPT):
 
         reg_loss_bias = tf.nn.l2_loss(track_bias)
 
-        scores_pos = self.get_attentive_scores(raw_scores_pos) + bias_pos
-        scores_neg = self.get_attentive_scores(raw_scores_neg) + bias_neg
+        oo = self.get_attentive_scores(raw_scores_pos)
+        scores_pos = oo + tf.squeeze(bias_pos)
+        scores_neg = self.get_attentive_scores(raw_scores_neg) + tf.squeeze(bias_neg)
+        print("self.get_attentive_scores(raw_scores_predict):", self.get_attentive_scores(raw_scores_predict))
+        print("bias_predict_embedding:", bias_predict_embedding)
         scores_predict = self.get_attentive_scores(raw_scores_predict) + bias_predict_embedding
+        print("bias_pos", bias_pos)
+        print("oo", oo)
         print("scores_pos: ", scores_pos)
+        print("scores_neg:", scores_neg)
         print("scores_predict: ", scores_predict)
         return scores_pos, scores_neg, scores_predict, reg_loss_emb, reg_loss_bias
 
