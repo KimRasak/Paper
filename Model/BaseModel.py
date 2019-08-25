@@ -180,6 +180,9 @@ class BaseModel(metaclass=ABCMeta):
         t1 = time()
         num_tested = 0
         test_t0 = time()
+        delta_t0 = 0
+        delta_t1 = 0
+        delta_t2 = 0
         for uid, user in self.data.test_set.items():
             for pid, tids in user.items():
                 for tid in tids:
@@ -199,11 +202,19 @@ class BaseModel(metaclass=ABCMeta):
                         hrs[k].append(hr_k)
                         ndcgs[k].append(ndcg_k)
                     test_t4 = time()
+
+                    delta_t0 += test_t2 - test_t1
+                    delta_t1 += test_t3 - test_t2
+                    delta_t2 += test_t4 - test_t3
+
                     num_tested += 1
                     if num_tested % 2000 == 0:
                         print("Tested %d pairs. Used %d seconds." % (num_tested, time() - test_t0))
-                        print("Test time use: %d %d %d" % (test_t2 - test_t1, test_t3 - test_t2, test_t4 - test_t3))
+                        print("Test time use: %d %d %d" % (delta_t0, delta_t1, delta_t2))
                         test_t0 = time()
+                        delta_t0 = 0
+                        delta_t1 = 0
+                        delta_t2 = 0
         test_time = time() - t1
         output_str = "Epoch %d complete. Testing used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
         self.print_and_append_record(output_str)
