@@ -8,4 +8,3 @@ if __name__ == '__main__':
 
     data = Data(path, batch_size=batch_size, laplacian_mode="UPT", reductive_ut=True)
     model = MDR_G6_att(num_epoch, data)
-    model.fit()

@@ -31,8 +31,10 @@ def get_laplacian(A: sp.spmatrix, A0=None):
     def get_symmetric_normalized_laplacian(adj: sp.spmatrix, A0: sp.spmatrix):
         D = get_D(adj)
         if A0 != None:
+            print("Using A0 matrix.")
             return D.dot(A0).dot(D).tocoo()
         else:
+            print("Not using A0 matrix.")
             return D.dot(adj).dot(D).tocoo()
 
     L: sp.spmatrix = get_symmetric_normalized_laplacian(A, A0)
@@ -77,9 +79,9 @@ def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix, alpha):  # 
     A0 = None
     if alpha != 1:
         A0 = sp.lil_matrix((m+n+l, m+n+l), dtype=np.float32)
-        set_maxtrix_value(A, R_up, 0, n)
-        set_maxtrix_value(A, R_ut, 0, m+n, alpha=alpha)
-        set_maxtrix_value(A, R_pt, m, m+n)
+        set_maxtrix_value(A0, R_up, 0, n)
+        set_maxtrix_value(A0, R_ut, 0, m+n, alpha=alpha)
+        set_maxtrix_value(A0, R_pt, m, m+n)
         # A0[:m, m:m+n] = R_up  # (m * n)
         # A0[:m, m+n:] = R_ut * alpha  # (m * l)
         # A0[m:m+n, m+n:] = R_pt  # (n * l)
@@ -180,7 +182,7 @@ class Data():
                     for tid in tids:
                         self.R_pt[pid, tid] = 1
                         if reductive_ut:
-                            self.R_ut[uid, tid] = self.alpha
+                            self.R_ut[uid, tid] = 1
                     # Add element to up
                     if uid not in self.up:
                         self.up[uid] = [pid]
