@@ -73,10 +73,11 @@ class BaseModel(metaclass=ABCMeta):
             self.L_p = convert_sp_mat_to_sp_tensor(self.data.L_p)
             self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
 
-            print("data.L: shape", self.L.shape)
             self.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # L + I. where I is the identity matrix.
             self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
             self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
+            print("data.L: shape", self.L.shape)
+            print("data.LI: shape", self.LI.shape)
 
         elif laplacian_mode == "UT":
             self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (m+n * m+n)
@@ -190,15 +191,18 @@ class BaseModel(metaclass=ABCMeta):
                     input_tids = [tid]
                     hundred_neg_tids = self.data.sample_hundred_negative_item(pid)
                     input_tids.extend(hundred_neg_tids)
+                    np.random.shuffle(input_tids)
+                    index_tid = input_tids.index(tid)
                     test_t2 = time()
 
                     predicts = self.test_predict(uid, pid, input_tids)
+                    pos_item_score = predicts[index_tid]
                     test_t3 = time()
                     sorted_idx = np.argsort(-predicts)
                     for k in range(1, max_K+1):
                         indices = sorted_idx[:k]  # indices of items with highest scores
                         ranklist = predicts[indices]
-                        hr_k, ndcg_k = get_metric(ranklist, predicts[0])
+                        hr_k, ndcg_k = get_metric(ranklist, pos_item_score)
                         hrs[k].append(hr_k)
                         ndcgs[k].append(ndcg_k)
                     test_t4 = time()

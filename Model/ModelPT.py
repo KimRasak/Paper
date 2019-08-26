@@ -15,6 +15,7 @@ class ModelPT(BaseModel):
             self.X_playlist_predict: [pid],
             self.X_items_predict: tids
         })
+        predicts = np.squeeze(predicts)
         if len(predicts) == 101:
             return predicts
         elif len(predicts[0]) == 101:

@@ -85,21 +85,9 @@ import scipy.sparse as sp
 #     # B[j + num_user, i] = cx.data
 # print(B)
 
-i = 1e-3
+import numpy as np
 
-a = i
-ex = 0
-n = 0
-while a < 1:
-    a *= 10
-    ex += 1
-n = a
-print(i)
-print(-ex, n)
-a = 3
-b = [a]
-b += [a]
-a = 4
-print(b, "ddd")
-st = "ss/dd/gg"
-print(st.split("/")[-1])
+input_tids = [1, 5, 77, 57]
+np.random.shuffle(input_tids)
+print(input_tids)
+print(input_tids.index(5))
