@@ -91,6 +91,7 @@ def get_A_2(R: sp.spmatrix):  # Get matrix "A" between user-item relationship.
     print('Used %d seconds. Already create adjacency matrix(A_2). shape of A: %r' % (time() - t, A.shape))
     return A
 
+
 def sample_pos_track_for_playlist(playlist: int, pt: dict):
     pos_tracks = pt[playlist]
     return np.random.choice(pos_tracks, 1)[0]

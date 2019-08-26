@@ -32,15 +32,18 @@ class NGCF_PT(ModelPT):
         # Loss, optimizer definition for training.
         ebs0 = self.get_init_embeddings()
         ebs1, ebs2, ebs3 = self.build_graph_layers(ebs0)
-        ebs_list = [ebs0, ebs1, ebs2, ebs3]
+        # ebs_list = [ebs0, ebs1, ebs2, ebs3]
+        ebs_list = [ebs0]
         ebs = tf.concat(ebs_list, 1)
         print("ebs1:", ebs1.shape)
+        print("ebs:", ebs)
 
         embed_playlist = tf.nn.embedding_lookup(ebs, self.X_playlist)
         embed_pos_item = tf.nn.embedding_lookup(ebs, self.data.n_playlist + self.X_pos_item)
         embed_neg_item = tf.nn.embedding_lookup(ebs, self.data.n_playlist + self.X_neg_item)
-        print("embed_pos_item", embed_pos_item.shape)
         print("embed_playlist:", embed_playlist)
+        print("embed_pos_item", embed_pos_item)
+        print("embed_neg_item:", embed_neg_item)
 
         self.t_eb_playlist = embed_playlist
         self.t_eb_pos_item = embed_pos_item
@@ -52,6 +55,7 @@ class NGCF_PT(ModelPT):
         self.t_pos_score = tf.matmul(embed_playlist, embed_pos_item, transpose_b=True)
         self.t_neg_score = tf.matmul(embed_playlist, embed_neg_item, transpose_b=True)
         print("t_pos_score:", self.t_pos_score)
+        print("t_neg_score:", self.t_neg_score)
         # self.t_reg_loss =
         self.t_temp = tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)
         self.t_mf_loss = tf.negative(tf.reduce_mean(tf.log(self.t_temp - 1e-8)))
@@ -70,22 +74,16 @@ class NGCF_PT(ModelPT):
         self.t_predict = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
         print("t_predict:", self.t_predict)
 
-    def get_concat_embedding(self, ebs_list, index):
-        num = 1
-        embed = tf.nn.embedding_lookup(ebs_list[0], index)
-        rank = len(embed.shape)
-        for ebs in ebs_list[1:]:
-            embed_l = tf.nn.embedding_lookup(ebs, index)
-            embed = tf.concat([embed, embed_l], rank - 1)
-            num += 1
-        return tf.reshape(embed, [embed.shape[0], embed.shape[-1]])
-
     def train_batch(self, batch):
         for key, batch_value in batch.items():
             batch[key] = np.array(batch_value).reshape(-1, 1)
-        opt, temp, loss, mf_loss, reg_loss, pos_score, neg_score, eb_p, eb_pos, eb_neg = self.sess.run([self.t_opt, self.t_temp, self.t_loss,
-                                                                                  self.t_mf_loss, self.t_reg_loss, self.t_pos_score, self.t_neg_score,
-                                                                                  self.t_eb_playlist, self.t_eb_pos_item, self.t_eb_neg_item], feed_dict={
+        opt, temp, \
+        loss, mf_loss, reg_loss, \
+        pos_score, neg_score, \
+        eb_p, eb_pos, eb_neg = self.sess.run([self.t_opt, self.t_temp,
+                                              self.t_loss, self.t_mf_loss, self.t_reg_loss,
+                                              self.t_pos_score, self.t_neg_score,
+                                              self.t_eb_playlist, self.t_eb_pos_item, self.t_eb_neg_item], feed_dict={
             self.X_playlist: batch["playlists"],
             self.X_pos_item: batch["pos_tracks"],
             self.X_neg_item: batch["neg_tracks"]

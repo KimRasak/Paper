@@ -1,48 +1,47 @@
 import numpy as np
 import scipy.sparse as sp
 
-# num_user = 3
-# num_item = 4
-# num_all = num_user + num_item
-# R: sp.dok_matrix = sp.dok_matrix((num_user, num_item), dtype=np.float32).tolil()
-# R[0, 1] = 1
-# R[0, 2] = 1
-# R[0, 3] = 1
-# R[1, 2] = 1
-# R[1, 3] = 1
-# A = sp.dok_matrix((num_all, num_all), dtype=np.float32)
-# A[:num_user, num_user:] = R
-# A[num_user:, :num_user] = R.T
-#
-# print("A:", A)
-# print("A.shape:", R.shape[0], R.shape[1])
-#
-# def get_D(adj: sp.spmatrix, power=-0.5):  # Get degree diagonal matrix, where a node's degree is the number of edges starting from this node.
-#     rowsum = np.sum(adj, axis=1).flatten().A[0]
-#     print("rowsum: ", rowsum)
-#
-#     # Get inverse( x^(-1) ) of every element, but zero remains zero.
-#     with np.errstate(divide='ignore'):
-#         d_inv = np.float_power(rowsum, power)
-#     d_inv[np.isinf(d_inv)] = 0
-#     print("d_inv: ", d_inv)
-#     d_mat_inv = sp.diags(d_inv)
-#     print("d_mat_inv.shape:", d_mat_inv.shape)
-#     return d_mat_inv
-# # print(sp.csgraph.laplacian(adj, normed=True))
-# D = get_D(A)
-# print("D:\n", D)
-# print("D.dot(A)", D.dot(A))
-# L = D.dot(A).dot(D)
-# print("L: ", L)
+num_user = 3
+num_item = 4
+num_all = num_user + num_item
+R: sp.dok_matrix = sp.dok_matrix((num_user, num_item), dtype=np.float32).tolil()
+R[0, 1] = 1
+R[0, 2] = 1
+R[0, 3] = 1
+R[1, 2] = 1
+R[1, 3] = 1
+A = sp.dok_matrix((num_all, num_all), dtype=np.float32)
+A[:num_user, num_user:] = R
+A[num_user:, :num_user] = R.T
 
-# print(1 / (3 ** 0.5))
-# print(1 / (2 ** 0.5))
+print("A:", A)
+print("A.shape:", R.shape[0], R.shape[1])
 
-# mul = np.multiply(B, D)
-# print(mul)
-# print(mul.T.dot(mul))
-# print(np.sum(np.square(mul), axis=0))
+def get_D(adj: sp.spmatrix, power=-0.5):  # Get degree diagonal matrix, where a node's degree is the number of edges starting from this node.
+    rowsum = np.sum(adj, axis=1).flatten().A[0]
+    rowsum1 = np.array(adj.sum(1))
+    print(np.sum(adj, axis=1).flatten().A)
+    print("rowsum: ", rowsum)
+    print("rowsum1: ", rowsum1)
+
+    # Get inverse( x^(-1) ) of every element, but zero remains zero.
+    with np.errstate(divide='ignore'):
+        d_inv = np.float_power(rowsum, power)
+    d_inv[np.isinf(d_inv)] = 0
+    print("d_inv: ", d_inv)
+    d_mat_inv = sp.diags(d_inv)
+    print("d_mat_inv.shape:", d_mat_inv.shape)
+    return d_mat_inv
+# print(sp.csgraph.laplacian(adj, normed=True))
+D = get_D(A)
+print("D:\n", D)
+print("D.dot(A)", D.dot(A))
+L = D.dot(A).dot(D)
+print("L: ", L)
+
+print(1 / (3 ** 0.5))
+print(1 / (2 ** 0.5))
+
 
 
 # import tensorflow as tf
@@ -85,9 +84,9 @@ import scipy.sparse as sp
 #     # B[j + num_user, i] = cx.data
 # print(B)
 
-import numpy as np
-
-input_tids = [1, 5, 77, 57]
-np.random.shuffle(input_tids)
-print(input_tids)
-print(input_tids.index(5))
+# import numpy as np
+#
+# input_tids = [1, 5, 77, 57]
+# np.random.shuffle(input_tids)
+# print(input_tids)
+# print(input_tids.index(5))
