@@ -324,6 +324,10 @@ def old_30music_main():
     # The [sub]-dataset has 5305 user ids, 7904 playlist ids, 170691 track ids and 319299 interactions
     # The [subset] events implicit feedbacks have 5207 user ids, 108607 track ids and 719713 interactions
 
+    # 60%
+    # The dataset has 13417 user ids, 39524 playlist ids, 461383 track ids and 1579282 interactions
+    # generate_subset: The [sub]-dataset has 10793 user ids, 23714 playlist ids, 346014 track ids and 948873 interactions
+
 def aotm_main():
     playlist_data = read_aotm_playlists()
 
