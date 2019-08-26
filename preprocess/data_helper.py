@@ -294,29 +294,24 @@ def save_data(playlist_data: dict, event_data: dict=None, p_filepath="../data/30
 
 
 def old_30music_main():
-    event_data, _, _ = read_30music_events()
     playlist_data, _, _, _ = read_30music_playlists()
 
     filter_playlist_data(playlist_data)
     uids, pids, tids, num_playlist_interactions = get_playlist_ids(playlist_data)
-    filter_events_data(event_data, uids, tids)
-    event_uids, event_tids, num_event_interactions = get_events_ids(event_data)
 
     print("The dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
         len(uids), len(pids), len(tids), num_playlist_interactions))
-    print("The events implicit feedbacks have %d user ids, %d track ids and %d interactions" % (
-        len(event_uids), len(event_tids), num_event_interactions))
 
     # Compact whole dataset ids. Save dataset.
-    playlist_data, event_data = compact_data_ids(playlist_data, event_data)
-    save_data(playlist_data, event_data)
+    playlist_data = compact_data_ids(playlist_data)
+    save_data(playlist_data)
 
     # Generate subset. Compact subset ids. Save sub-dataset.
-    pick_playlist_data, pick_event_data = generate_subset(playlist_data, event_data)
-    pick_playlist_data, pick_event_data = compact_data_ids(pick_playlist_data, pick_event_data)
+    pick_playlist_data = generate_subset(playlist_data, proportion=0.6)
+    pick_playlist_data = compact_data_ids(pick_playlist_data)
     pick_p_filepath = "../data/30music/pick_playlist.txt"
     pick_e_filepath = "../data/30music/pick_events.txt"
-    save_data(pick_playlist_data, pick_event_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)
+    save_data(pick_playlist_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)
     # Read event dataset comlete. Cost 2 seconds. Read 48422 playlists. Max uid: 45169, max pid: 11766362, max tid: 5023056
 
     # Before filter.
@@ -329,8 +324,7 @@ def old_30music_main():
     # The [sub]-dataset has 5305 user ids, 7904 playlist ids, 170691 track ids and 319299 interactions
     # The [subset] events implicit feedbacks have 5207 user ids, 108607 track ids and 719713 interactions
 
-
-if __name__ == '__main__':
+def aotm_main():
     playlist_data = read_aotm_playlists()
 
     filter_playlist_data(playlist_data)
@@ -346,11 +340,16 @@ if __name__ == '__main__':
     save_data(playlist_data, p_filepath=p_filepath, e_filepath=e_filepath)
 
     # Generate subset. Compact subset ids. Save sub-dataset.
-    pick_playlist_data = generate_subset(playlist_data)
+    pick_playlist_data = generate_subset(playlist_data, proportion=0.4)
     pick_playlist_data = compact_data_ids(pick_playlist_data)
     pick_p_filepath = "../data/aotm/pick_playlist.txt"
     pick_e_filepath = "../data/aotm/pick_events.txt"
     save_data(pick_playlist_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)
     # aotm filtered data.
     # The dataset has 15863 user ids, 100013 playlist ids, 970678 track ids and 1981525 interactions
+    # 20%
     # generate_subset: The [sub]-dataset has 6974 user ids, 20002 playlist ids, 270124 track ids and 396295 interactions
+    # 40%
+    # generate_subset: The [sub]-dataset has 10170 user ids, 40005 playlist ids, 473852 track ids and 792283 interactions
+if __name__ == '__main__':
+    old_30music_main()
