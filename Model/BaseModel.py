@@ -38,7 +38,7 @@ def convert_sp_mat_to_sp_tensor(X):
     if X.getnnz() == 0:
         print("add one.", X.shape)
         X[0, 0] = 1
-    coo = X.tocoo().astype(np.float64)
+    coo = X.tocoo().astype(np.float32)
     indices = np.mat([coo.row, coo.col]).transpose()
 
     return tf.sparse.SparseTensor(indices, coo.data, dense_shape=coo.shape)

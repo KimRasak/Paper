@@ -14,3 +14,4 @@ train*.py
 *rr*.txt
 train4.py
 train6.py
+*.pyc
