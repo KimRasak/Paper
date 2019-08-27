@@ -87,7 +87,7 @@ class NGCF_PT_bi_PT_att(ModelPT):
         self.t_pos_score, self.t_neg_score, self.t_predict, reg_loss_emb = self.get_layers_scores(ebs_list)
 
         self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)))
-        self.t_reg_loss = self.reg_rate * (reg_loss_emb)
+        self.t_reg_loss = self.reg_rate * (reg_loss_emb + self.t_weight_loss)
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
         print("t_predict", self.t_predict)

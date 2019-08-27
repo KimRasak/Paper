@@ -38,10 +38,10 @@ def convert_sp_mat_to_sp_tensor(X):
     if X.getnnz() == 0:
         print("add one.", X.shape)
         X[0, 0] = 1
-    coo = X.tocoo().astype(np.float32)
+    coo = X.tocoo().astype(np.float64)
     indices = np.mat([coo.row, coo.col]).transpose()
 
-    return tf.sparse.SparseTensor(indices, coo.data, dense_shape=X.shape)
+    return tf.sparse.SparseTensor(indices, coo.data, dense_shape=coo.shape)
 
 class BaseModel(metaclass=ABCMeta):
     def __init__(self, num_epoch, data: Data, output_path="./output.txt",
@@ -201,8 +201,8 @@ class BaseModel(metaclass=ABCMeta):
                     sorted_idx = np.argsort(-predicts)
                     for k in range(1, max_K+1):
                         indices = sorted_idx[:k]  # indices of items with highest scores
-                        ranklist = predicts[indices]
-                        hr_k, ndcg_k = get_metric(ranklist, pos_item_score)
+                        ranklist = np.array(input_tids)[indices]
+                        hr_k, ndcg_k = get_metric(ranklist, tid)
                         hrs[k].append(hr_k)
                         ndcgs[k].append(ndcg_k)
                     test_t4 = time()
@@ -213,7 +213,7 @@ class BaseModel(metaclass=ABCMeta):
 
                     num_tested += 1
                     if num_tested % 2000 == 0:
-                        print("Tested %d pairs. Used %d seconds." % (num_tested, time() - test_t0))
+                        print("Tested %d pairs. Used %d seconds. hr_10: %f, hr_20: %f" % (num_tested, time() - test_t0, np.average(hrs[10]), np.average(hrs[20])))
                         print("Test time use: %d %d %d" % (delta_t0, delta_t1, delta_t2))
                         test_t0 = time()
                         delta_t0 = 0
@@ -306,14 +306,14 @@ class BaseModel(metaclass=ABCMeta):
         if num_weight not in [2, 4]:
             raise Exception("Wrong number of layer weight.")
         if num_weight == 2:
-            W1 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-            W2 = tf.Variable(self.initializer([eb_size1, eb_size2]))
+            W1 = tf.Variable(tf.truncated_normal([eb_size1, eb_size2], dtype=tf.float64))
+            W2 = tf.Variable(tf.truncated_normal([eb_size1, eb_size2], dtype=tf.float64))
             aggregate = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI, embeddings), W1) + \
                         tf.matmul(tf.multiply(tf.sparse_tensor_dense_matmul(self.L, embeddings), embeddings), W2)
 
             w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2)
             self.t_weight_loss += w_loss
-            new_embeddings = tf.nn.selu(aggregate)
+            new_embeddings = tf.nn.leaky_relu(aggregate)
             print("graph PT 2. new_embeddings:", new_embeddings)
         else:
             W1 = tf.Variable(self.initializer([eb_size1, eb_size2]))

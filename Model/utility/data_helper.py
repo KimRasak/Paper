@@ -64,6 +64,7 @@ def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix, alpha):  # 
     m = R_up.shape[0]  # Number of users.
     n = R_pt.shape[0]  # Number of playlists.
     l = R_ut.shape[1]  # Number of tracks.
+    assert R_ut.shape[1] == R_pt.shape[1]
 
     A = sp.lil_matrix((m+n+l, m+n+l), dtype=np.float32)
     set_maxtrix_value(A, R_up, 0, n)
@@ -86,8 +87,12 @@ def get_A_2(R: sp.spmatrix):  # Get matrix "A" between user-item relationship.
     n = R.shape[1]
 
     A = sp.lil_matrix((m + n, m + n), dtype=np.float32)
+    R_ = R.tolil()
 
     set_maxtrix_value(A, R, 0, m)
+    # A[:m, m:] = R_
+    # A[m:, :m] = R_.T
+    A = A.todok()
     print('Used %d seconds. Already create adjacency matrix(A_2). shape of A: %r' % (time() - t, A.shape))
     return A
 
@@ -177,6 +182,7 @@ class Data():
                     else:
                         self.up[uid].append(pid)
                     # Add element to pt
+                    assert pid not in self.pt
                     self.pt[pid] = tids
 
                     line = f.readline()
@@ -191,6 +197,7 @@ class Data():
                     uid, pid, tids = ids[0], ids[1], ids[2:]
                     if uid not in self.test_set:
                         self.test_set[uid] = dict()
+                    assert pid not in self.test_set[uid]
                     self.test_set[uid][pid] = tids
                     line = f.readline()
             print("Used %d seconds. Have read test set." % (time() - t_test_set))
@@ -204,6 +211,14 @@ class Data():
         print("laplacian_mode=%r, loading laplacian matrix." % laplacian_mode)
         self.laplacian_mode = laplacian_mode
         if laplacian_mode == "PT":
+            for uid, user in self.test_set.items():
+                for pid, tids in user.items():
+                    for tid in tids:
+                        assert self.R_pt[pid, tid] != 1
+            for pid, tids in self.pt.items():
+                for tid in tids:
+                    assert self.R_pt[pid, tid] == 1
+
             self.A = get_A_2(self.R_pt)  # (n * l)
 
             self.L: sp.spmatrix = get_laplacian(self.A)  # Normalized laplacian matrix of A. (n+l * n+l)

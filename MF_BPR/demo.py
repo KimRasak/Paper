@@ -1,6 +1,13 @@
 import numpy as np
 import scipy.sparse as sp
 
+def set_maxtrix_value(A, R, m_offset, n_offset, alpha=1):
+    cx = R.tocoo()
+    for i, j, v in zip(cx.row, cx.col, cx.data):
+        assert v == 1
+        A[i + m_offset, j + n_offset] = alpha
+        A[j + n_offset, i + m_offset] = alpha
+
 num_user = 3
 num_item = 4
 num_all = num_user + num_item
@@ -13,6 +20,11 @@ R[1, 3] = 1
 A = sp.dok_matrix((num_all, num_all), dtype=np.float32)
 A[:num_user, num_user:] = R
 A[num_user:, :num_user] = R.T
+A = A.todok()
+
+# A1 = sp.dok_matrix((num_all, num_all), dtype=np.float32)
+# set_maxtrix_value(A1, R, 0, num_user)
+# print(A1)
 
 print("A:", A)
 print("A.shape:", R.shape[0], R.shape[1])

@@ -32,8 +32,8 @@ class NGCF_PT(ModelPT):
         # Loss, optimizer definition for training.
         ebs0 = self.get_init_embeddings()
         ebs1, ebs2, ebs3 = self.build_graph_layers(ebs0)
-        # ebs_list = [ebs0, ebs1, ebs2, ebs3]
-        ebs_list = [ebs0]
+        ebs_list = [ebs0, ebs1, ebs2, ebs3 ]
+        # ebs_list = [ebs0]
         ebs = tf.concat(ebs_list, 1)
         print("ebs1:", ebs1.shape)
         print("ebs:", ebs)
@@ -58,7 +58,7 @@ class NGCF_PT(ModelPT):
         print("t_neg_score:", self.t_neg_score)
         # self.t_reg_loss =
         self.t_temp = tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)
-        self.t_mf_loss = tf.negative(tf.reduce_mean(tf.log(self.t_temp - 1e-8)))
+        self.t_mf_loss = tf.negative(tf.reduce_mean(tf.log(self.t_temp + 1e-8)))
         print("t_mf_loss:", self.t_mf_loss)
         self.t_reg_loss = self.reg_rate * (self.t_embed_loss + self.t_weight_loss) / self.data.batch_size
         self.t_loss = self.t_mf_loss + self.t_reg_loss
@@ -73,6 +73,7 @@ class NGCF_PT(ModelPT):
         print("items_predict_embeddings:", items_predict_embeddings)
         self.t_predict = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
         print("t_predict:", self.t_predict)
+        print(tf.trainable_variables())
 
     def train_batch(self, batch):
         for key, batch_value in batch.items():

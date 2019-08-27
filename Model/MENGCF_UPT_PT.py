@@ -9,8 +9,7 @@ Each graph layer uses 6 weight matrices. (6 = 3 Entities * 2 directions) Differe
 """
 class NGCF_UPT_PT(NGCF_PT):
     def get_init_embeddings(self):
-        return tf.Variable(tf.truncated_normal(shape=[self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size], mean=0.0,
-                                stddev=0.5))
+        return tf.Variable(self.initializer([self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size]))
 
     def build_graph_layers(self, embeddings):
         embeddings1 = self.build_graph_UPT(embeddings, self.embedding_size, self.embedding_size)
