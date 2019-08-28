@@ -189,7 +189,7 @@ class BaseModel(metaclass=ABCMeta):
 
             time_2000 += time() - t1_batch
             if (test_i + 1) % 2000 == 0:
-                if i_epoch >= 30:
+                if i_epoch <= 30:
                     break
                 print("test_batch[%d] cost %d seconds. hr_10: %f, hr_20: %f" %
                       (test_i + 1, time_2000, np.average(hrs[10]), np.average(hrs[20])))
