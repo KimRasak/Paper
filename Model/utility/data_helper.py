@@ -152,6 +152,7 @@ class Data():
 
         self.n_train = self.R_pt.getnnz()
         self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * epoch_times
+        print("There are %d training instances. Each epoch has %d batches with batch size of %d." % (self.n_train, self.n_batch, self.batch_size))
 
         laplacian_modes = ["PT2", "PT4", "UT", "UPT", "None", "TestPT", "TestUPT"]
         if laplacian_mode not in laplacian_modes:
