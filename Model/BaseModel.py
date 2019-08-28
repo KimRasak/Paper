@@ -86,7 +86,7 @@ class BaseModel(metaclass=ABCMeta):
             entity_names = ["complete", "p", "t"]
         elif laplacian_mode == "UT":
             entity_names = ["u", "t"]
-        elif laplacian_mode == ["TestUPT", "UPT"]:
+        elif laplacian_mode in ["TestUPT", "UPT"]:
             entity_names = ["u", "p", "t"]
         else:
             entity_names = []
