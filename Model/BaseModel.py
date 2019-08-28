@@ -78,6 +78,7 @@ class BaseModel(metaclass=ABCMeta):
         laplacian_mode = self.data.laplacian_mode
         self.L_folds = dict()
         self.LI_folds = dict()
+
         if laplacian_mode == "PT2":
             entity_names = ["complete"]
         elif laplacian_mode == "PT4":
@@ -92,8 +93,14 @@ class BaseModel(metaclass=ABCMeta):
             entity_names = []
 
         for entity_name in entity_names:
-            self.L_folds[entity_name] = self.sparse_matrix_to_tensor_folds(self.data.L[entity_name], self.node_dropout_flag)
-            self.LI_folds[entity_name] = self.sparse_matrix_to_tensor_folds(self.data.LI[entity_name], self.node_dropout_flag)
+            self.L_folds[entity_name] = self.sp_to_tensor_fold(self.data.L[entity_name],
+                                                                           self.node_dropout_flag)
+            self.LI_folds[entity_name] = self.sp_to_tensor_fold(self.data.LI[entity_name],
+                                                                            self.node_dropout_flag)
+
+        # for entity_name in entity_names:
+        #     self.L_folds[entity_name] = self.sparse_matrix_to_tensor_folds(self.data.L[entity_name], self.node_dropout_flag)
+        #     self.LI_folds[entity_name] = self.sparse_matrix_to_tensor_folds(self.data.LI[entity_name], self.node_dropout_flag)
 
     def fit(self):
         self.global_init()
@@ -215,6 +222,7 @@ class BaseModel(metaclass=ABCMeta):
     def global_init(self):
         self.output = []
         self.output_file = open("%s.txt" % self.model_name, "a+")
+        print(tf.trainable_variables())
 
     def print_result_and_add_loss(self, i_epoch, i_batch, result):
         if i_batch % self.n_save_batch_loss != 0:
@@ -273,7 +281,6 @@ class BaseModel(metaclass=ABCMeta):
     def get_init_embeddings(self):
         pass
 
-
     def sparse_tensor_folds_mul_embed(self, tensor_folds, embed):
         temp_embed = []
         for tensor_fold in tensor_folds:
@@ -288,8 +295,11 @@ class BaseModel(metaclass=ABCMeta):
             W_dot = W_dots[entity_name]
             entity_emb = entity_embs[entity_name]
 
-            LI_side_embed = self.sparse_tensor_folds_mul_embed(self.LI_folds[entity_name], embeddings)
-            L_side_embed = self.sparse_tensor_folds_mul_embed(self.L_folds[entity_name], embeddings)
+            LI_side_embed = tf.sparse_tensor_dense_matmul(self.LI_folds[entity_name], embeddings)
+            L_side_embed = tf.sparse_tensor_dense_matmul(self.L_folds[entity_name], embeddings)
+
+            # LI_side_embed = self.sparse_tensor_folds_mul_embed(self.LI_folds[entity_name], embeddings)
+            # L_side_embed = self.sparse_tensor_folds_mul_embed(self.L_folds[entity_name], embeddings)
             sum_embed = tf.matmul(LI_side_embed, W_side)
             dot_embed = tf.matmul(tf.multiply(L_side_embed, entity_emb), W_dot)
 
@@ -366,6 +376,20 @@ class BaseModel(metaclass=ABCMeta):
 
         writer = tf.summary.FileWriter(tensorboard_dir)
         writer.add_graph(self.sess.graph)
+
+    def sp_to_tensor_fold(self, X: sp.spmatrix, dropout):
+        tensor_fold = convert_sp_mat_to_sp_tensor(X)
+        print(tensor_fold.shape)
+
+        if dropout:
+            # dropout_tensor_fold = tf.nn.dropout(tensor_fold, keep_prob=(1 - self.t_node_dropout[0]))
+            n_nonzero_fold = X.count_nonzero()
+            dropout_tensor_fold = dropout_sparse(tensor_fold, 1 - self.t_node_dropout[0], n_nonzero_fold)
+            print(dropout_tensor_fold.shape)
+            return dropout_tensor_fold
+        else:
+            return tensor_fold
+
 
     def sparse_matrix_to_tensor_folds(self, X: sp.spmatrix, drop_out):
         tensor_folds = []

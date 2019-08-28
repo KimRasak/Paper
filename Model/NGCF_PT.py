@@ -73,4 +73,3 @@ class NGCF_PT(ModelPT):
         print("items_predict_embeddings:", items_predict_embeddings)
         self.t_predict = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
         print("t_predict:", self.t_predict)
-        print(tf.trainable_variables())
