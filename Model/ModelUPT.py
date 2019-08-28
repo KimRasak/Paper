@@ -33,8 +33,8 @@ class ModelUPT(BaseModel):
             self.X_user_predict: [uid],
             self.X_playlist_predict: [pid],
             self.X_items_predict: tids,
-            self.t_message_dropout: [0],
-            self.t_node_dropout: [0]
+            self.t_message_dropout: [0.],
+            self.t_node_dropout: [0.]
         })
 
         predicts = np.squeeze(predicts)

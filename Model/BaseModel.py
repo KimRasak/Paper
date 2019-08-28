@@ -174,22 +174,22 @@ class BaseModel(metaclass=ABCMeta):
         time_2000 = 0
         for test_i, test_tuple in enumerate(self.data.test_set):
             t1_batch = time()
+            uid = test_tuple[0]
             pid = test_tuple[1]
             tid = test_tuple[2]
 
             # change test_tuple[2] from int to id list.
             hundred_neg_tids: list = self.data.sample_hundred_negative_item(pid)
-            tids = hundred_neg_tids
-            tids.append(tid)
-            test_tuple[2] = tids
-            assert len(tids) == 101
+            test_tids = hundred_neg_tids
+            test_tids.append(tid)
+            assert len(test_tids) == 101
 
-            scores = self.test_predict(test_tuple)
+            scores = self.test_predict([uid, pid, test_tids])
             sorted_idx = np.argsort(-scores)
             assert len(scores) == 101
             for k in range(1, max_k + 1):
                 indices = sorted_idx[:k]  # indices of items with highest scores
-                ranklist = np.array(tids)[indices]
+                ranklist = np.array(test_tids)[indices]
                 hr_k, ndcg_k = get_metric(ranklist, tid)
                 hrs[k].append(hr_k)
                 ndcgs[k].append(ndcg_k)
