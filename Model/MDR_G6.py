@@ -155,53 +155,53 @@ class MDR_G6(ModelUPT):
         bias_predict_embedding = tf.nn.embedding_lookup(track_bias, self.X_items_predict)
         self.t_predict = MDR_layer(predict_user_embed, predict_playlist_embed, items_predict_embeddings, B1, B2) + bias_predict_embedding
         print("t_predict", self.t_predict)
-
-    def train_batch(self, batch):
-
-        for i, t in enumerate(batch['pos_tracks']):
-            assert t < self.data.n_track  # 采样的id在合理范围
-            assert t != batch['neg_tracks'][i]  # 正负采样不同
-            pl = batch['playlists'][i]
-            u = batch['users'][i]
-            assert self.data.R_up[u, pl] > 0
-            assert self.data.R_pt[pl, t] > 0 and self.data.R_ut[u, t] >= 0, "%r %r" % (t in self.data.R_pt[pl], t in self.data.R_ut[u])  # 正采样
-            assert pl in self.data.up[u] and t in self.data.pt[pl]
-            assert batch['neg_tracks'][i] not in self.data.pt[pl]  # 负采样
-        for i in batch['neg_tracks']:
-            assert i < self.data.n_track
-        for i in batch['users']:
-            assert i < self.data.n_user
-        for i in batch['playlists']:
-            assert i < self.data.n_playlist
-
-        for key, batch_value in batch.items():
-            batch[key] = np.array(batch_value).reshape(-1, 1)
-        opt, \
-        loss, mf_loss, reg_loss, \
-        pos_score, neg_score, \
-        eb_user, eb_playlist, eb_pos_item, \
-        ebs0, ebs1, ebs2, ebs3,\
-        delt = self.sess.run([self.t_opt, self.t_loss, self.t_mf_loss, self.t_reg_loss,
-                                                                            self.t_pos_score, self.t_neg_score,
-                                                                            self.t_embed_user, self.t_embed_playlist, self.t_embed_pos_item,
-                                                                            self.ebs0, self.ebs1, self.ebs2, self.ebs3,
-                                                                            self.delt], feed_dict={
-            self.X_user: batch["users"],
-            self.X_playlist: batch["playlists"],
-            self.X_pos_item: batch["pos_tracks"],
-            self.X_neg_item: batch["neg_tracks"]
-        })
-
-        # for d in delt:
-        #     if d == 0 or np.isnan(d):
-        #         print("found...")
-        #         break
-        #
-        # if np.isnan(loss) or np.isnan(reg_loss) or np.isnan(mf_loss):
-        #     print("loss")
-
-        return {
-            "loss": loss,
-            "mf_loss": mf_loss,
-            "reg_loss": reg_loss,
-        }
+    #
+    # def train_batch(self, batch):
+    #
+    #     for i, t in enumerate(batch['pos_tracks']):
+    #         assert t < self.data.n_track  # 采样的id在合理范围
+    #         assert t != batch['neg_tracks'][i]  # 正负采样不同
+    #         pl = batch['playlists'][i]
+    #         u = batch['users'][i]
+    #         assert self.data.R_up[u, pl] > 0
+    #         assert self.data.R_pt[pl, t] > 0 and self.data.R_ut[u, t] >= 0, "%r %r" % (t in self.data.R_pt[pl], t in self.data.R_ut[u])  # 正采样
+    #         assert pl in self.data.up[u] and t in self.data.pt[pl]
+    #         assert batch['neg_tracks'][i] not in self.data.pt[pl]  # 负采样
+    #     for i in batch['neg_tracks']:
+    #         assert i < self.data.n_track
+    #     for i in batch['users']:
+    #         assert i < self.data.n_user
+    #     for i in batch['playlists']:
+    #         assert i < self.data.n_playlist
+    #
+    #     for key, batch_value in batch.items():
+    #         batch[key] = np.array(batch_value).reshape(-1, 1)
+    #     opt, \
+    #     loss, mf_loss, reg_loss, \
+    #     pos_score, neg_score, \
+    #     eb_user, eb_playlist, eb_pos_item, \
+    #     ebs0, ebs1, ebs2, ebs3,\
+    #     delt = self.sess.run([self.t_opt, self.t_loss, self.t_mf_loss, self.t_reg_loss,
+    #                                                                         self.t_pos_score, self.t_neg_score,
+    #                                                                         self.t_embed_user, self.t_embed_playlist, self.t_embed_pos_item,
+    #                                                                         self.ebs0, self.ebs1, self.ebs2, self.ebs3,
+    #                                                                         self.delt], feed_dict={
+    #         self.X_user: batch["users"],
+    #         self.X_playlist: batch["playlists"],
+    #         self.X_pos_item: batch["pos_tracks"],
+    #         self.X_neg_item: batch["neg_tracks"]
+    #     })
+    #
+    #     # for d in delt:
+    #     #     if d == 0 or np.isnan(d):
+    #     #         print("found...")
+    #     #         break
+    #     #
+    #     # if np.isnan(loss) or np.isnan(reg_loss) or np.isnan(mf_loss):
+    #     #     print("loss")
+    #
+    #     return {
+    #         "loss": loss,
+    #         "mf_loss": mf_loss,
+    #         "reg_loss": reg_loss,
+    #     }

@@ -81,20 +81,3 @@ class MDR(ModelUPT):
         bias_predict_embedding = tf.nn.embedding_lookup(track_bias, self.X_items_predict)
         self.t_predict = self.MDR_layer(predict_user_embed, predict_playlist_embed, items_predict_embeddings, B1, B2) + bias_predict_embedding
         print("t_predict", self.t_predict)
-
-    def train_batch(self, batch):
-        for key, batch_value in batch.items():
-            batch[key] = np.array(batch_value).reshape(-1, 1)
-        opt, loss, mf_loss, reg_loss, pos_score, neg_score = self.sess.run([self.t_opt, self.t_loss,
-                                                                                  self.t_mf_loss, self.t_reg_loss, self.t_pos_score, self.t_neg_score], feed_dict={
-            self.X_user: batch["users"],
-            self.X_playlist: batch["playlists"],
-            self.X_pos_item: batch["pos_tracks"],
-            self.X_neg_item: batch["neg_tracks"]
-        })
-
-        return {
-            "loss": loss,
-            "mf_loss": mf_loss,
-            "reg_loss": reg_loss,
-        }

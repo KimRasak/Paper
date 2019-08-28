@@ -111,21 +111,3 @@ class NGCF_PT_PT2(ModelPT):
         print("items_predict_embeddings:", items_predict_embeddings)
         self.t_predict = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
         print("t_predict:", self.t_predict)
-
-    def train_batch(self, batch):
-        for key, batch_value in batch.items():
-            batch[key] = np.array(batch_value).reshape(-1, 1)
-        opt, temp, loss, mf_loss, reg_loss, pos_score, neg_score, eb_p, eb_pos, eb_neg = self.sess.run([self.t_opt, self.t_temp, self.t_loss,
-                                                                                  self.t_mf_loss, self.t_reg_loss, self.t_pos_score, self.t_neg_score,
-                                                                                  self.t_eb_playlist, self.t_eb_pos_item, self.t_eb_neg_item], feed_dict={
-            self.X_playlist: batch["playlists"],
-            self.X_pos_item: batch["pos_tracks"],
-            self.X_neg_item: batch["neg_tracks"]
-        })
-
-        return {
-            "loss": loss,
-            "temp": temp,
-            "mf_loss": mf_loss,
-            "reg_loss": reg_loss
-        }

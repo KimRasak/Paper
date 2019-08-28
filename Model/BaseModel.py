@@ -4,26 +4,11 @@ from time import time
 
 import tensorflow as tf
 import numpy as np
+import scipy.sparse as sp
 from tensorflow.contrib.layers import xavier_initializer
 from Model.utility.data_helper import Data
-from Model.utility.batch_test import test
+from Model.utility.batch_test import get_metric
 
-
-def get_metric(ranklist, gt_item):
-    return get_hit_ratio(ranklist, gt_item), get_ndcg(ranklist, gt_item)
-
-def get_hit_ratio(ranklist, gt_item):
-    for item in ranklist:
-        if item == gt_item:
-            return 1
-    return 0
-
-def get_ndcg(ranklist, gt_item):
-    for i in range(len(ranklist)):
-        item = ranklist[i]
-        if item == gt_item:
-            return np.log(2) / np.log(i + 2)
-    return 0
 
 def get_base_index(i):
     a = i
@@ -34,18 +19,33 @@ def get_base_index(i):
     base = a
     return base, index
 
+
 def convert_sp_mat_to_sp_tensor(X):
-    if X.getnnz() == 0:
-        print("add one.", X.shape)
+    if X.getnnz() == 0:  # Testing
         X[0, 0] = 1
     coo = X.tocoo().astype(np.float32)
     indices = np.mat([coo.row, coo.col]).transpose()
 
     return tf.sparse.SparseTensor(indices, coo.data, dense_shape=coo.shape)
 
+
+def dropout_sparse(X, keep_prob, n_nonzero_elems):
+    """
+    Dropout for sparse tensors.
+    """
+    noise_shape = [n_nonzero_elems]
+    random_tensor = keep_prob
+    random_tensor += tf.random_uniform(noise_shape)
+    dropout_mask = tf.cast(tf.floor(random_tensor), dtype=tf.bool)
+    pre_out = tf.sparse_retain(X, dropout_mask)
+
+    return pre_out * tf.div(1., keep_prob)
+
 class BaseModel(metaclass=ABCMeta):
     def __init__(self, num_epoch, data: Data, output_path="./output.txt",
-                 n_save_batch_loss=300, embedding_size=64, learning_rate=2e-4, reg_rate=5e-5, ngcf2=False):
+                 n_save_batch_loss=300, embedding_size=64, learning_rate=2e-4, reg_rate=5e-5,
+                 node_dropout_flag=True, node_dropout=0.1, message_dropout=0.1, n_fold=100,
+                 test_batch_size=150):
         self.num_epoch = num_epoch
         self.data = data
         self.output_path = output_path
@@ -53,7 +53,15 @@ class BaseModel(metaclass=ABCMeta):
         self.embedding_size = embedding_size
         self.learning_rate = learning_rate
         self.reg_rate = reg_rate
-        self.ngcf2 = ngcf2
+
+        self.node_dropout_flag = node_dropout_flag
+        self.node_dropout = node_dropout
+        self.message_dropout = message_dropout
+        self.t_node_dropout = tf.placeholder(tf.float32, shape=[None])
+        self.t_message_dropout = tf.placeholder(tf.float32, shape=[None])
+        self.n_fold = n_fold
+
+        self.test_batch_size = test_batch_size
 
         self.t_weight_loss = 0
         self.initializer = tf.contrib.layers.xavier_initializer()
@@ -64,52 +72,28 @@ class BaseModel(metaclass=ABCMeta):
         self.create_session()
         self.restore_model()
 
+
+
     def build_model(self):
-        if self.ngcf2:
-            return
         laplacian_mode = self.data.laplacian_mode
-        if laplacian_mode == "PT":
-            self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (n+l * n+l)
-            self.L_p = convert_sp_mat_to_sp_tensor(self.data.L_p)
-            self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
-
-            self.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # L + I. where I is the identity matrix.
-            self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
-            self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
-            print("data.L: shape", self.L.shape)
-            print("data.LI: shape", self.LI.shape)
-
+        self.L_folds = dict()
+        self.LI_folds = dict()
+        if laplacian_mode == "PT2":
+            entity_names = ["complete"]
+        elif laplacian_mode == "PT4":
+            entity_names = ["p", "t"]
+        elif laplacian_mode == "TestPT":
+            entity_names = ["complete", "p", "t"]
         elif laplacian_mode == "UT":
-            self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (m+n * m+n)
-            self.L_u = convert_sp_mat_to_sp_tensor(self.data.L_u)
-            self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
+            entity_names = ["u", "t"]
+        elif laplacian_mode == ["TestUPT", "UPT"]:
+            entity_names = ["u", "p", "t"]
+        else:
+            entity_names = []
 
-            # self.LI = self.L + tf.eye(self.L.shape[0])  # L + I. where I is the identity matrix.
-            self.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
-            self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
-        elif laplacian_mode == "UPT":
-            # self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (m+n+l * m+n+l)
-            self.L_u = convert_sp_mat_to_sp_tensor(self.data.L_u)
-            self.L_p = convert_sp_mat_to_sp_tensor(self.data.L_p)
-            self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
-
-            # self.LI = self.L + tf.eye(self.L.shape[0])  # L + I. where I is the identity matrix.
-            self.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
-            self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
-            self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
-        elif laplacian_mode == "TestPT" or laplacian_mode == "TestUPT":
-            self.L = convert_sp_mat_to_sp_tensor(self.data.L)  # Normalized laplacian matrix of A. (n+l * n+l)
-            if hasattr(self.data, "L_u"):
-                self.L_u = convert_sp_mat_to_sp_tensor(self.data.L_u)
-            self.L_p = convert_sp_mat_to_sp_tensor(self.data.L_p)
-            self.L_t = convert_sp_mat_to_sp_tensor(self.data.L_t)
-
-            print("data.L: shape", self.L.shape)
-            self.LI = convert_sp_mat_to_sp_tensor(self.data.LI)  # L + I. where I is the identity matrix.
-            if hasattr(self.data, "LI_u"):
-                self.LI_u = convert_sp_mat_to_sp_tensor(self.data.LI_u)
-            self.LI_p = convert_sp_mat_to_sp_tensor(self.data.LI_p)
-            self.LI_t = convert_sp_mat_to_sp_tensor(self.data.LI_t)
+        for entity_name in entity_names:
+            self.L_folds[entity_name] = self.sparse_matrix_to_tensor_folds(self.data.L[entity_name], self.node_dropout_flag)
+            self.LI_folds[entity_name] = self.sparse_matrix_to_tensor_folds(self.data.LI[entity_name], self.node_dropout_flag)
 
     def fit(self):
         self.global_init()
@@ -175,57 +159,50 @@ class BaseModel(metaclass=ABCMeta):
         pass
 
     def test(self, i_epoch):
-        max_K = 20
-        hrs = {i: [] for i in range(1, max_K+1)}
-        ndcgs = {i: [] for i in range(1, max_K+1)}
         t1 = time()
-        num_tested = 0
-        test_t0 = time()
-        delta_t0 = 0
-        delta_t1 = 0
-        delta_t2 = 0
-        for uid, user in self.data.test_set.items():
-            for pid, tids in user.items():
-                for tid in tids:
-                    test_t1 = time()
-                    input_tids = [tid]
-                    hundred_neg_tids = self.data.sample_hundred_negative_item(pid)
-                    input_tids.extend(hundred_neg_tids)
-                    np.random.shuffle(input_tids)
-                    index_tid = input_tids.index(tid)
-                    test_t2 = time()
+        max_k = 20
 
-                    predicts = self.test_predict(uid, pid, input_tids)
-                    pos_item_score = predicts[index_tid]
-                    test_t3 = time()
-                    sorted_idx = np.argsort(-predicts)
-                    for k in range(1, max_K+1):
-                        indices = sorted_idx[:k]  # indices of items with highest scores
-                        ranklist = np.array(input_tids)[indices]
-                        hr_k, ndcg_k = get_metric(ranklist, tid)
-                        hrs[k].append(hr_k)
-                        ndcgs[k].append(ndcg_k)
-                    test_t4 = time()
+        hrs = {i: [] for i in range(1, max_k + 1)}
+        ndcgs = {i: [] for i in range(1, max_k + 1)}
+        time_2000 = 0
+        for test_i, test_tuple in enumerate(self.data.test_set):
+            t1_batch = time()
+            pid = test_tuple[1]
+            tid = test_tuple[2]
 
-                    delta_t0 += test_t2 - test_t1
-                    delta_t1 += test_t3 - test_t2
-                    delta_t2 += test_t4 - test_t3
+            # change test_tuple[2] from int to id list.
+            hundred_neg_tids: list = self.data.sample_hundred_negative_item(pid)
+            tids = hundred_neg_tids
+            tids.append(tid)
+            test_tuple[2] = tids
+            assert len(tids) == 101
 
-                    num_tested += 1
-                    if num_tested % 2000 == 0:
-                        print("Tested %d pairs. Used %d seconds. hr_10: %f, hr_20: %f" % (num_tested, time() - test_t0, np.average(hrs[10]), np.average(hrs[20])))
-                        print("Test time use: %d %d %d" % (delta_t0, delta_t1, delta_t2))
-                        test_t0 = time()
-                        delta_t0 = 0
-                        delta_t1 = 0
-                        delta_t2 = 0
+            scores = self.test_predict(test_tuple)
+            sorted_idx = np.argsort(-scores)
+            assert len(scores) == 101
+            for k in range(1, max_k + 1):
+                indices = sorted_idx[:k]  # indices of items with highest scores
+                ranklist = np.array(tids)[indices]
+                hr_k, ndcg_k = get_metric(ranklist, tid)
+                hrs[k].append(hr_k)
+                ndcgs[k].append(ndcg_k)
+
+            time_2000 += time() - t1_batch
+            if (test_i + 1) % 2000 == 0:
+                print("test_batch[%d] cost %d seconds. hr_10: %f, hr_20: %f" %
+                      (test_i + 1, time_2000, np.average(hrs[10]), np.average(hrs[20])))
+                time_2000 = 0
         test_time = time() - t1
         output_str = "Epoch %d complete. Testing used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
         self.print_and_append_record(output_str)
-        self.append_metric_record(hrs, ndcgs, max_K)
+        self.append_metric_record(hrs, ndcgs, max_k)
 
     @abstractmethod
-    def test_predict(self, uid, pid, tids):
+    def test_predict(self, test_data: list) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def train_batch(self, batch: dict) -> dict:
         pass
 
     def save_output(self):
@@ -236,11 +213,6 @@ class BaseModel(metaclass=ABCMeta):
     def global_init(self):
         self.output = []
         self.output_file = open("%s.txt" % self.model_name, "a+")
-
-
-    @abstractmethod
-    def train_batch(self, batch: dict) -> dict:
-        pass
 
     def print_result_and_add_loss(self, i_epoch, i_batch, result):
         if i_batch % self.n_save_batch_loss != 0:
@@ -274,19 +246,18 @@ class BaseModel(metaclass=ABCMeta):
             output_str += "%s: %f " % (loss_name, loss_value)
         self.print_and_append_record(output_str)
 
-    def append_metric_record(self, hrs, ndcgs, max_K):
+    def append_metric_record(self, hrs, ndcgs, max_k):
         self.output_file.write("hr_k: ")
-        for i in range(1, max_K+1):
+        for i in range(1, max_k+1):
             hr_k = np.average(hrs[i])
             self.output_file.write("%f " % hr_k)
         self.output_file.write("\n")
 
         self.output_file.write("ndcg_k: ")
-        for i in range(1, max_K+1):
+        for i in range(1, max_k+1):
             ndcg_k = np.average(ndcgs[i])
             self.output_file.write("%f " % ndcg_k)
         self.output_file.write("\n")
-
 
     def print_and_append_record(self, output_str, write_file=True):
         print(output_str)
@@ -300,78 +271,91 @@ class BaseModel(metaclass=ABCMeta):
     def get_init_embeddings(self):
         pass
 
+
+    def sparse_tensor_folds_mul_embed(self, tensor_folds, embed):
+        temp_embed = []
+        for tensor_fold in tensor_folds:
+            temp_embed.append(tf.sparse_tensor_dense_matmul(tensor_fold, embed))
+        side_embeddings = tf.concat(temp_embed, 0)
+        return side_embeddings
+
+    def build_weight_graph(self, embeddings, entity_names, W_sides, W_dots, entity_embs):
+        agg_folds = []
+        for entity_name in entity_names:
+            W_side = W_sides[entity_name]
+            W_dot = W_dots[entity_name]
+            entity_emb = entity_embs[entity_name]
+
+            LI_side_embed = self.sparse_tensor_folds_mul_embed(self.LI_folds[entity_name], embeddings)
+            L_side_embed = self.sparse_tensor_folds_mul_embed(self.L_folds[entity_name], embeddings)
+            sum_embed = tf.matmul(LI_side_embed, W_side)
+            dot_embed = tf.matmul(tf.multiply(L_side_embed, entity_emb), W_dot)
+
+            agg_fold = tf.nn.leaky_relu(sum_embed + dot_embed)
+            agg_folds.append(agg_fold)
+
+            self.t_weight_loss += tf.nn.l2_loss(W_side) + tf.nn.l2_loss(W_dot)
+        agg = tf.concat(agg_folds, axis=0)
+        dropout_embed = tf.nn.dropout(agg, 1 - self.t_message_dropout[0])
+        print("entity_names:", entity_names)
+        print("dropout_embed:", dropout_embed)
+        return dropout_embed
+
     # graph_PT
     def build_graph_PT(self, embeddings: tf.Tensor, eb_size1, eb_size2, num_weight=2):
         # assert self.data.laplacian_mode == "PT"
         if num_weight not in [2, 4]:
             raise Exception("Wrong number of layer weight.")
         if num_weight == 2:
-            W1 = tf.Variable(tf.truncated_normal([eb_size1, eb_size2], dtype=tf.float64))
-            W2 = tf.Variable(tf.truncated_normal([eb_size1, eb_size2], dtype=tf.float64))
-            aggregate = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI, embeddings), W1) + \
-                        tf.matmul(tf.multiply(tf.sparse_tensor_dense_matmul(self.L, embeddings), embeddings), W2)
+            entity_names = ["complete"]
+            W_sides = {"complete": tf.Variable(self.initializer([eb_size1, eb_size2]))}
+            W_dots = {"complete": tf.Variable(self.initializer([eb_size1, eb_size2]))}
+            entity_embs = {"complete": embeddings}
 
-            w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2)
-            self.t_weight_loss += w_loss
-            new_embeddings = tf.nn.leaky_relu(aggregate)
-            print("graph PT 2. new_embeddings:", new_embeddings)
         else:
-            W1 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-            W2 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-            W3 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-            W4 = tf.Variable(self.initializer([eb_size1, eb_size2]))
+            entity_names = ["p", "t"]
 
-            print(self.LI_p)
+            W_sides = {
+                "p": tf.Variable(self.initializer([eb_size1, eb_size2])),
+                "t": tf.Variable(self.initializer([eb_size1, eb_size2]))
+            }
+            W_dots = {
+                "p": tf.Variable(self.initializer([eb_size1, eb_size2])),
+                "t": tf.Variable(self.initializer([eb_size1, eb_size2]))
+            }
 
-            LI_P_emb = tf.sparse_tensor_dense_matmul(self.LI_p, embeddings)
-            L_P_emb = tf.sparse_tensor_dense_matmul(self.L_p, embeddings)
-            L_P_emb_mul_emb = tf.multiply(L_P_emb, embeddings[:self.data.n_playlist, :])
-            aggregate1 = tf.matmul(LI_P_emb, W1) + tf.matmul(L_P_emb_mul_emb, W2)
-
-            LI_T_emb = tf.sparse_tensor_dense_matmul(self.LI_t, embeddings)
-            L_T_emb = tf.sparse_tensor_dense_matmul(self.L_t, embeddings)
-            L_T_emb_mul_emb = tf.multiply(L_T_emb, embeddings[self.data.n_playlist:, :])
-            aggregate2 = tf.matmul(LI_T_emb, W3) + tf.matmul(L_T_emb_mul_emb, W4)
-
-            w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4)
-            self.t_weight_loss += w_loss
-            new_embeddings = tf.nn.selu(tf.concat([aggregate1, aggregate2], axis=0))
-            print("graph PT 4. new_embeddings:", new_embeddings)
-
-        return new_embeddings
+            entity_embs = {
+                "p": embeddings[:self.data.n_playlist, :],
+                "t": embeddings[self.data.n_playlist:, :]
+            }
+        dropout_embed = self.build_weight_graph(embeddings, entity_names, W_sides, W_dots, entity_embs)
+        return dropout_embed
 
     # graph_UT
 
     # graph_UPT
     def build_graph_UPT(self, embeddings, eb_size1, eb_size2):
-        W1 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-        W2 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-        W3 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-        W4 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-        W5 = tf.Variable(self.initializer([eb_size1, eb_size2]))
-        W6 = tf.Variable(self.initializer([eb_size1, eb_size2]))
+        entity_names = ["u", "p", "t"]
 
-        user_embeddings = embeddings[:self.data.n_user, :]
-        playlist_embeddings = embeddings[self.data.n_user:self.data.n_user+self.data.n_playlist, :]
-        track_embeddings = embeddings[self.data.n_user+self.data.n_playlist:, :]
+        W_sides = {
+            "u": tf.Variable(self.initializer([eb_size1, eb_size2])),
+            "p": tf.Variable(self.initializer([eb_size1, eb_size2])),
+            "t": tf.Variable(self.initializer([eb_size1, eb_size2]))
+        }
+        W_dots = {
+            "u": tf.Variable(self.initializer([eb_size1, eb_size2])),
+            "p": tf.Variable(self.initializer([eb_size1, eb_size2])),
+            "t": tf.Variable(self.initializer([eb_size1, eb_size2]))
+        }
 
-        LI_u_emb = tf.sparse_tensor_dense_matmul(self.LI_u, embeddings)
-        emb_u_W1 = tf.matmul(LI_u_emb, W1)
+        entity_embs = {
+            "u": embeddings[:self.data.n_user, :],
+            "p": embeddings[self.data.n_user:self.data.n_user+self.data.n_playlist, :],
+            "t": embeddings[self.data.n_user+self.data.n_playlist:, :]
+        }
 
-        L_u_emb = tf.sparse_tensor_dense_matmul(self.L_u, embeddings)
-        emb_multiply = tf.multiply(L_u_emb, user_embeddings)
-        emb_u_W2 = tf.matmul(emb_multiply, W2)
-
-        aggregate1 = emb_u_W1 + emb_u_W2
-        aggregate2 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_p, embeddings), W3) + tf.matmul(
-            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_p, embeddings), playlist_embeddings), W4)
-        aggregate3 = tf.matmul(tf.sparse_tensor_dense_matmul(self.LI_t, embeddings), W5) + tf.matmul(
-            tf.multiply(tf.sparse_tensor_dense_matmul(self.L_t, embeddings), track_embeddings), W6)
-
-        w_loss = tf.nn.l2_loss(W1) + tf.nn.l2_loss(W2) + tf.nn.l2_loss(W3) + tf.nn.l2_loss(W4) + tf.nn.l2_loss(W5) + tf.nn.l2_loss(W6)
-        self.t_weight_loss += w_loss
-        new_embeddings = tf.nn.selu(tf.concat([aggregate1, aggregate2, aggregate3], axis=0))
-        return new_embeddings
+        dropout_embed = self.build_weight_graph(embeddings, entity_names, W_sides, W_dots, entity_embs)
+        return dropout_embed
 
     def show_graph(self):
         tensorboard_dir = 'tensorboard/'  # 保存目录
@@ -380,5 +364,27 @@ class BaseModel(metaclass=ABCMeta):
 
         writer = tf.summary.FileWriter(tensorboard_dir)
         writer.add_graph(self.sess.graph)
+
+    def sparse_matrix_to_tensor_folds(self, X: sp.spmatrix, drop_out):
+        tensor_folds = []
+
+        height = X.shape[0]
+        fold_len = height // self.n_fold
+        for i_fold in range(self.n_fold):
+            start = i_fold * fold_len
+            if i_fold == self.n_fold - 1:
+                end = height
+            else:
+                end = (i_fold + 1) * fold_len
+
+            fold = X[start:end]
+            tensor_fold = convert_sp_mat_to_sp_tensor(fold)
+            if drop_out:
+                n_nonzero_fold = fold.count_nonzero()
+                dropout_tensor_fold = dropout_sparse(tensor_fold, 1 - self.t_node_dropout[0], n_nonzero_fold)
+                tensor_folds.append(dropout_tensor_fold)
+            else:
+                tensor_folds.append(tensor_fold)
+        return tensor_folds
 
 

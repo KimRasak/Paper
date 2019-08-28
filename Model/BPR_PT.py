@@ -43,20 +43,3 @@ class BPR_PT(ModelPT):
         items_predict_embeddings = tf.nn.embedding_lookup(track_embedding, self.X_items_predict)
         self.t_predict = tf.matmul(predict_playlist_embed, items_predict_embeddings, transpose_b=True)
 
-    def train_batch(self, batch):
-        for key, batch_value in batch.items():
-            batch[key] = np.array(batch_value).reshape(-1, 1)
-
-        opt, loss, pos_score, neg_score = self.sess.run([self.t_opt, self.t_loss, self.t_pos_score, self.t_neg_score], feed_dict={
-            self.X_playlist: batch["playlists"],
-            self.X_pos_item: batch["pos_tracks"],
-            self.X_neg_item: batch["neg_tracks"]
-        })
-
-        return {
-            "loss": loss,
-            "pos_score": neg_score,
-            "neg_score": neg_score
-        }
-
-

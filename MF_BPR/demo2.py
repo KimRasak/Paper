@@ -1,9 +1,12 @@
+import multiprocessing
+from abc import ABCMeta, abstractmethod
+
+import tensorflow as tf
+
 import numpy as np
 
-arr = [1, 3, 5, 66, 77, 88]
-np.random.shuffle(arr)
-arr = np.array(arr)
-print(arr)
-idx = [3, 4]
-print(type(arr))
-print(arr[idx])
+
+a = [1, 2]
+b = a[0]
+a[0] = 3
+print(b, a)

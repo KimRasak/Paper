@@ -9,4 +9,4 @@ Default implementation of NGCF_PT is NGCF_PT_PT, so there's no need to change fu
 """
 class NGCF_PT_PT(NGCF_PT):
     def get_init_embeddings(self):
-        return tf.Variable(tf.truncated_normal([self.data.n_playlist + self.data.n_track, self.embedding_size], dtype=tf.float64))
+        return tf.Variable(tf.truncated_normal([self.data.n_playlist + self.data.n_track, self.embedding_size]))

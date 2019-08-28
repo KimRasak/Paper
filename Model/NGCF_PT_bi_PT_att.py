@@ -91,19 +91,3 @@ class NGCF_PT_bi_PT_att(ModelPT):
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
         print("t_predict", self.t_predict)
-
-    def train_batch(self, batch):
-        for key, batch_value in batch.items():
-            batch[key] = np.array(batch_value).reshape(-1, 1)
-        opt, loss, mf_loss, reg_loss, pos_score, neg_score = self.sess.run([self.t_opt, self.t_loss,
-                                                                                  self.t_mf_loss, self.t_reg_loss, self.t_pos_score, self.t_neg_score], feed_dict={
-            self.X_playlist: batch["playlists"],
-            self.X_pos_item: batch["pos_tracks"],
-            self.X_neg_item: batch["neg_tracks"]
-        })
-
-        return {
-            "loss": loss,
-            "mf_loss": mf_loss,
-            "reg_loss": reg_loss,
-        }
