@@ -58,7 +58,7 @@ class NGCF_PT(ModelPT):
         print("t_neg_score:", self.t_neg_score)
         # self.t_reg_loss =
         self.t_temp = tf.nn.sigmoid(self.t_pos_score - self.t_neg_score)
-        self.t_mf_loss = tf.negative(tf.reduce_mean(tf.log(self.t_temp + 1e-8)))
+        self.t_mf_loss = tf.negative(tf.reduce_mean(tf.log(self.t_temp)))
         print("t_mf_loss:", self.t_mf_loss)
         self.t_reg_loss = self.reg_rate * (self.t_embed_loss + self.t_weight_loss) / self.data.batch_size
         self.t_loss = self.t_mf_loss + self.t_reg_loss
