@@ -9,14 +9,20 @@ class ModelUPT(BaseModel):
     def train_batch(self, batch):
         for key, batch_value in batch.items():
             batch[key] = np.array(batch_value).reshape(-1, 1)
-        opt, loss, mf_loss, reg_loss = self.sess.run([self.t_opt, self.t_loss, self.t_mf_loss, self.t_reg_loss], feed_dict={
+
+        feed_dict = {
             self.X_user: batch["users"],
             self.X_playlist: batch["playlists"],
             self.X_pos_item: batch["pos_tracks"],
             self.X_neg_item: batch["neg_tracks"],
             self.t_message_dropout: [self.message_dropout],
             self.t_node_dropout: [self.node_dropout]
-        })
+        }
+
+        if "cluster" in self.data.laplacian_mode:
+            feed_dict[self.X_pos_item_bias] = batch["pos_track_biases"]
+            feed_dict[self.X_neg_item_bias] = batch["neg_track_biases"]
+        opt, loss, mf_loss, reg_loss = self.sess.run([self.t_opt, self.t_loss, self.t_mf_loss, self.t_reg_loss], feed_dict=feed_dict)
 
         return {
             "loss": loss,
@@ -29,13 +35,17 @@ class ModelUPT(BaseModel):
         pid = test_data[1]
         tids = test_data[2]
 
-        predicts = self.sess.run(self.t_predict, feed_dict={
+        feed_dict = {
             self.X_user_predict: [uid],
             self.X_playlist_predict: [pid],
             self.X_items_predict: tids,
             self.t_message_dropout: [0.],
             self.t_node_dropout: [0.]
-        })
+        }
+
+        if "cluster" in self.data.laplacian_mode:
+            feed_dict[self.X_items_predict_bias] = test_data[3]
+        predicts = self.sess.run(self.t_predict, feed_dict=feed_dict)
 
         predicts = np.squeeze(predicts)
         if len(predicts) == 101:

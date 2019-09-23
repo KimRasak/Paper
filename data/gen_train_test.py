@@ -105,6 +105,8 @@ if __name__ == '__main__':
     p_filepath = '30music/pick_playlist.txt'
     train_filepath = '30music/pick_train.txt'
     test_filepath = '30music/pick_test.txt'
+    # 读取id信息(读取的id默认是连续且从0开始的)
+    # 只要在生成数据集时有compact操作就好
     p_data, num_user, num_playlist, num_track = read_playlist(p_filepath)
     split_train_test(p_data, train_filepath, test_filepath, num_user, num_playlist, num_track)
 

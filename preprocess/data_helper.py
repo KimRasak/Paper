@@ -293,7 +293,7 @@ def save_data(playlist_data: dict, event_data: dict=None, p_filepath="../data/30
             f.write("\n")
 
 
-def old_30music_main():
+def main_30music():
     playlist_data, _, _, _ = read_30music_playlists()
 
     filter_playlist_data(playlist_data)
@@ -326,7 +326,8 @@ def old_30music_main():
     # The dataset has 13417 user ids, 39524 playlist ids, 461383 track ids and 1579282 interactions
     # generate_subset: The [sub]-dataset has 10674 user ids, 23714 playlist ids, 345510 track ids and 949721 interactions
 
-def aotm_main():
+
+def main_aotm():
     playlist_data = read_aotm_playlists()
 
     filter_playlist_data(playlist_data)
@@ -354,4 +355,4 @@ def aotm_main():
     # 40%
     # generate_subset: The [sub]-dataset has 10170 user ids, 40005 playlist ids, 473852 track ids and 792283 interactions
 if __name__ == '__main__':
-    old_30music_main()
+    main_30music()
