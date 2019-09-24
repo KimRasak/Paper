@@ -44,9 +44,9 @@ class ModelUPT(BaseModel):
         }
 
         if "cluster" in self.data.laplacian_mode:
-            feed_dict[self.X_items_predict_bias] = test_data[3]
+            tid_biases = self.data.cluster_id_map_reverse[tids] - self.data.t_offset
+            feed_dict[self.X_items_predict_bias] = tid_biases
         predicts = self.sess.run(self.t_predict, feed_dict=feed_dict)
-
         predicts = np.squeeze(predicts)
         if len(predicts) == 101:
             return predicts

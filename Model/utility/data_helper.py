@@ -1,7 +1,7 @@
 import os
 from time import time
 
-import metis
+import pymetis as metis
 import numpy as np
 import scipy.sparse as sp
 import networkx as nx
@@ -235,9 +235,9 @@ class Data:
             test_tuple[0] = self.cluster_id_map[test_tuple[0] + self.u_offset]
             test_tuple[1] = self.cluster_id_map[test_tuple[1] + self.p_offset]
             test_tuple[2] = self.cluster_id_map[test_tuple[2] + self.t_offset]
-            if "cluster" in self.laplacian_mode:
-                tid_biases = self.cluster_id_map_reverse[test_tuple[2]] - self.t_offset
-                test_tuple.append(tid_biases)
+            # if "cluster" in self.laplacian_mode:
+            #     tid_biases = self.cluster_id_map_reverse[test_tuple[2]] - self.t_offset
+            #     test_tuple.append(tid_biases)
 
 
     def gen_normal_laplacian_matrix(self):

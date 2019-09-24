@@ -223,11 +223,7 @@ class BaseModel(metaclass=ABCMeta):
             test_tids.append(tid)
             assert len(test_tids) == 101
 
-            if "cluster" in self.data.laplacian_mode:
-                tid_bias = test_tuple[3]
-                scores = self.test_predict([uid, pid, test_tids, tid_bias])
-            else:
-                scores = self.test_predict([uid, pid, test_tids])
+            scores = self.test_predict([uid, pid, test_tids])
             sorted_idx = np.argsort(-scores)
             assert len(scores) == 101
             for k in range(1, max_k + 1):
