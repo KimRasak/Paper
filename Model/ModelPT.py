@@ -14,6 +14,7 @@ class ModelPT(BaseModel):
         for key, batch_value in batch.items():
             batch[key] = np.array(batch_value).reshape(-1, 1)
 
+        t = time()
         opt, loss, mf_loss, reg_loss = self.sess.run([self.t_opt, self.t_loss, self.t_mf_loss, self.t_reg_loss], feed_dict={
             self.X_playlist: batch["playlists"],
             self.X_pos_item: batch["pos_tracks"],
@@ -21,12 +22,13 @@ class ModelPT(BaseModel):
             self.t_message_dropout: [self.message_dropout],
             self.t_node_dropout: [self.node_dropout]
         })
+        t_pre = time() - t
 
         return {
             "loss": loss,
             "mf_loss": mf_loss,
             "reg_loss": reg_loss,
-        }
+        }, t_pre
 
     def test_predict(self, test_data: list):
         pid = test_data[1]
