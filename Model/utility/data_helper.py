@@ -294,6 +294,51 @@ class Data:
                 for tid in tids:
                     assert self.R_pt[pid, tid] == 1
 
+    def gen_cluster_parts_from_list(self, num_cluster):
+        D = [[] for i in range(self.n_sum)]
+        # Add edges for graph
+        if "UPT" in self.laplacian_mode:
+            for uid, pids in self.up.items():
+                for pid in pids:
+                    real_uid = uid
+                    real_pid = pid + self.n_user
+                    D[real_uid].append(real_pid)
+            for pid, tids in self.pt.items():
+                for tid in tids:
+                    real_pid = pid + self.n_user
+                    real_tid = tid + self.n_user + self.n_playlist
+                    D[real_pid].append(real_tid)
+            for uid, tids in self.ut.items():
+                for tid in tids:
+                    real_uid = uid
+                    real_tid = tid + self.n_user + self.n_playlist
+                    D[real_uid].append(real_tid)
+        elif "PT" in self.laplacian_mode:
+            for pid, tids in self.pt.items():
+                for tid in tids:
+                    real_pid = pid
+                    real_tid = tid + self.n_playlist
+                    D[real_pid].append(real_tid)
+        elif "UT" in self.laplacian_mode:
+            for uid, pids in self.up.items():
+                for pid in pids:
+                    real_uid = uid
+                    real_pid = pid + self.n_user
+                    D[real_uid].append(real_pid)
+        else:
+            raise Exception("Wrong laplacian mode %r" % self.laplacian_mode)
+
+        # 进行分割
+        t1 = time()
+        (edgecuts, parts) = metis.part_graph(adjacency=D, nparts=num_cluster)
+        print("分割图为%d个簇, 用了%d秒" % (num_cluster, time() - t1))
+        print("There are %d clustered nodes." % len(parts))
+        assert len(parts) == self.n_sum
+        for part in parts:
+            assert 0 <= part < num_cluster
+
+        return parts
+
     def gen_cluster_parts(self, num_cluster):
         assert "cluster" in self.laplacian_mode
         print("生成cluster映射中...")
