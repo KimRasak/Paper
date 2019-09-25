@@ -1,7 +1,7 @@
 import os
 from time import time
 
-import pymetis as metis
+import metis as metis
 import numpy as np
 import scipy.sparse as sp
 import networkx as nx
@@ -641,7 +641,7 @@ class Data:
         :return: 无
         """
         if not os.path.exists(filepath):
-            parts = self.gen_cluster_parts_from_list(num_cluster)
+            parts = self.gen_cluster_parts(num_cluster)
             assert len(parts) == self.n_sum
             # Write cluster map file.
             with open(filepath, "w") as f:
