@@ -196,11 +196,11 @@ class BaseModel(metaclass=ABCMeta):
 
             time_100 += time() - t1_batch
             if (test_i + 1) % 100 == 0:
-                if i_epoch <= 30:
-                    break
                 print("test_batch[%d] cost %f seconds. hr_10: %f, hr_20: %f" %
-                      (test_i + 1, time_2000, np.average(hrs[10]), np.average(hrs[20])))
+                      (test_i + 1, time_100, np.average(hrs[10]), np.average(hrs[20])))
                 time_100 = 0
+                if i_epoch <= 30:
+                  break
         test_time = time() - t1
         output_str = "Epoch %d complete. Testing used %f seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))
         self.print_and_append_record(output_str)
