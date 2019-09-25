@@ -739,7 +739,7 @@ class Data:
 
     def next_batch_upt(self):
         batch = {
-            "users":  [np.random.randint(0, self.n_user) for _ in range(self.batch_size)],
+            "users":  self.cluster_id_map[np.array([np.random.randint(0, self.n_user) for _ in range(self.batch_size)])],
             "playlists": [],
             "pos_tracks": [],
             "neg_tracks": []
@@ -750,7 +750,7 @@ class Data:
             batch["neg_track_biases"] = []
 
         for user in batch["users"]:
-            playlist = np.random.choice(self.up[self.cluster_id_map_reverse[user] - self.u_offset], 1)[0]
+            playlist = np.random.choice(self.up[user], 1)[0]
             pos_track = sample_pos_track_for_playlist(playlist, self.pt)
             neg_track = self.sample_neg_track_for_playlist(playlist, self.pt, self.t_offset, self.n_track)
 
