@@ -208,6 +208,7 @@ class BaseModel(metaclass=ABCMeta):
         ndcgs = {i: [] for i in range(1, max_k + 1)}
         time_2000 = 0
 
+        t_p_total = 0
         for test_i, test_tuple in enumerate(self.data.test_set):
             t1_batch = time()
             uid = test_tuple[0]
@@ -223,7 +224,8 @@ class BaseModel(metaclass=ABCMeta):
             test_tids.append(tid)
             assert len(test_tids) == 101
 
-            scores = self.test_predict([uid, pid, test_tids])
+            scores, t_pre = self.test_predict([uid, pid, test_tids])
+            t_p_total += t_pre
             sorted_idx = np.argsort(-scores)
             assert len(scores) == 101
             for k in range(1, max_k + 1):
@@ -237,8 +239,8 @@ class BaseModel(metaclass=ABCMeta):
             if (test_i + 1) % 2000 == 0:
                 if i_epoch <= 30:
                     break
-                print("test_batch[%d] cost %d seconds. hr_10: %f, hr_20: %f" %
-                      (test_i + 1, time_2000, np.average(hrs[10]), np.average(hrs[20])))
+                print("test_batch[%d] cost %d: %d seconds. hr_10: %f, hr_20: %f" %
+                      (test_i + 1, time_2000, t_p_total, np.average(hrs[10]), np.average(hrs[20])))
                 time_2000 = 0
         test_time = time() - t1
         output_str = "Epoch %d complete. Testing used %d seconds, hr_10: %f, hr_20: %f" % (i_epoch, test_time, np.average(hrs[10]), np.average(hrs[20]))

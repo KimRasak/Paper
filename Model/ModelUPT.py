@@ -1,6 +1,7 @@
 from Model.BaseModel import BaseModel
 import numpy as np
 
+from time import time
 class ModelUPT(BaseModel):
     def next_batch(self, i_batch: int) -> dict:
         batch = self.data.next_batch_upt()
@@ -46,9 +47,11 @@ class ModelUPT(BaseModel):
         if "cluster" in self.data.laplacian_mode:
             tid_biases = self.data.cluster_id_map_reverse[tids] - self.data.t_offset
             feed_dict[self.X_items_predict_bias] = tid_biases
+        t = time()
         predicts = self.sess.run(self.t_predict, feed_dict=feed_dict)
+        t_pre = time() - t
         predicts = np.squeeze(predicts)
         if len(predicts) == 101:
-            return predicts
+            return predicts, t_pre
         else:
             raise Exception("Wrong len of predict")
