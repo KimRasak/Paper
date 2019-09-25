@@ -22,26 +22,26 @@ class ModelPT(BaseModel):
             self.t_message_dropout: [self.message_dropout],
             self.t_node_dropout: [self.node_dropout]
         })
-        t_pre = time() - t
-
         return {
             "loss": loss,
             "mf_loss": mf_loss,
             "reg_loss": reg_loss,
-        }, t_pre
+        }
 
     def test_predict(self, test_data: list):
         pid = test_data[1]
         tids = test_data[2]
 
+        t = time()
         predicts = self.sess.run(self.t_predict, feed_dict={
             self.X_playlist_predict: [pid],
             self.X_items_predict: tids,
             self.t_message_dropout: [0.],
             self.t_node_dropout: [0.]
         })
+        t_pre = time() - t
         predicts = np.squeeze(predicts)
         if len(predicts) == 101:
-            return predicts
+            return predicts, t_pre
         else:
             raise Exception("Wrong len of predict")
