@@ -206,7 +206,7 @@ class BaseModel(metaclass=ABCMeta):
 
         hrs = {i: [] for i in range(1, max_k + 1)}
         ndcgs = {i: [] for i in range(1, max_k + 1)}
-        time_2000 = 0
+        time_100 = 0
 
         t_p_total = 0
         for test_i, test_tuple in enumerate(self.data.test_set):
@@ -235,11 +235,11 @@ class BaseModel(metaclass=ABCMeta):
                 hrs[k].append(hr_k)
                 ndcgs[k].append(ndcg_k)
 
-            time_2000 += time() - t1_batch
-            if (test_i + 1) % 2000 == 0:
-                print("test_batch[%d] cost %d: %d seconds. hr_10: %f, hr_20: %f" %
-                      (test_i + 1, time_2000, t_p_total, np.average(hrs[10]), np.average(hrs[20])))
-                time_2000 = 0
+            time_100 += time() - t1_batch
+            if (test_i + 1) % 100 == 0:
+                print("test_batch[%d] cost %f: %f seconds. hr_10: %f, hr_20: %f" %
+                      (test_i + 1, time_100, t_p_total, np.average(hrs[10]), np.average(hrs[20])))
+                time_100 = 0
                 if i_epoch <= 30:
                     break
         test_time = time() - t1

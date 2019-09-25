@@ -739,13 +739,14 @@ class Data:
 
     def next_batch_upt(self):
         batch = {
-            "users":  self.cluster_id_map[np.array([np.random.randint(0, self.n_user) for _ in range(self.batch_size)])],
+            "users":  np.array([np.random.randint(0, self.n_user) for _ in range(self.batch_size)]),
             "playlists": [],
             "pos_tracks": [],
             "neg_tracks": []
         }
 
         if "cluster" in self.laplacian_mode:
+            batch["users"] = self.cluster_id_map[batch["users"]]
             batch["pos_track_biases"] = []
             batch["neg_track_biases"] = []
 
