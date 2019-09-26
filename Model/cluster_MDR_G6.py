@@ -3,11 +3,13 @@ import tensorflow as tf
 from Model.MDR_G6 import MDR_G6
 from Model.ModelUPT import ModelUPT
 
+
 def get_output(delta, B):
     B_delta = tf.multiply(B, delta)
     square = tf.square(B_delta)
     print("square:", square, len(square.shape) - 1)
     return tf.reduce_sum(square, axis=len(square.shape) - 1)
+
 
 def MDR_layer(embed_user, embed_playlist, embed_track, B1, B2):
     delta_ut = embed_user - embed_track
@@ -18,6 +20,7 @@ def MDR_layer(embed_user, embed_playlist, embed_track, B1, B2):
     print("o1/o2:", o1.shape, o2.shape)
 
     return o1 + o2
+
 
 class cluster_MDR_G6(ModelUPT):
     def get_init_embeddings(self):

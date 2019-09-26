@@ -15,6 +15,7 @@ import networkx as nx
 先试试直接读取train/test文件，得到矩阵的速度。
 """
 
+
 def get_laplacian(A: sp.spmatrix, A_alpha=None, log=True):
     t = time()
 
@@ -96,6 +97,7 @@ def get_A_2(R: sp.spmatrix):  # Get matrix "A" between user-item relationship.
 def sample_pos_track_for_playlist(playlist: int, pt: dict):
     pos_tracks = pt[playlist]
     return np.random.choice(pos_tracks, 1)[0]
+
 
 class Data:
     def __init__(self, path, pick=True, laplacian_mode="PT2", batch_size=256, reductive_ut=True, alpha=1, epoch_times=4,
@@ -187,6 +189,7 @@ class Data:
                 self.t_offset = self.n_user
 
     def map_ids(self):
+        # 将原本的id序列映射到cluster的id序列下
         laplacian_mode = self.laplacian_mode
 
         # map up
@@ -238,7 +241,6 @@ class Data:
             # if "cluster" in self.laplacian_mode:
             #     tid_biases = self.cluster_id_map_reverse[test_tuple[2]] - self.t_offset
             #     test_tuple.append(tid_biases)
-
 
     def gen_normal_laplacian_matrix(self):
         laplacian_mode = self.laplacian_mode
@@ -549,6 +551,7 @@ class Data:
         return A
 
     def set_L_and_LI_for_cluster(self, cluster, L, LI):
+        # 0.004608409020173726 laplacian矩阵比较稀疏
         n_user = cluster["u"]["size"]
         n_playlist = cluster["p"]["size"]
         n_track = cluster["t"]["size"]
@@ -582,6 +585,10 @@ class Data:
                 "u": LI[:n_user, :],
                 "t": LI[n_user:, :]
             }
+        for entity_name, l_matrix in cluster["L"].items():
+            n_nonzero = l_matrix.getnnz()
+            n_whole = l_matrix.get_shape()[0] * l_matrix.get_shape()[1]
+            print(n_nonzero / n_whole)
 
     def do_gen_cluster_laplacian_matrix(self, clusters):
         laplacian_mode = self.laplacian_mode

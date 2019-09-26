@@ -45,7 +45,7 @@ class BaseModel(metaclass=ABCMeta):
     def __init__(self, num_epoch, data: Data, output_path="./output.txt",
                  n_save_batch_loss=300, embedding_size=64, learning_rate=2e-4, reg_rate=5e-5,
                  node_dropout_flag=True, node_dropout=0.1, message_dropout=0.1, n_fold=100,
-                 test_batch_size=150):
+                 test_batch_size=150, dense_laplacian=False):
         self.num_epoch = num_epoch
         self.data = data
         self.output_path = output_path
