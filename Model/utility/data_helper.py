@@ -653,7 +653,7 @@ class Data:
         print("存在已有的cluster映射文件, 开始读取...")
         parts = self.do_read_cluster_parts(filepath)
         assert len(parts) == self.n_sum
-        print("读取cluster映射文件完成, 用了%f秒" % (time() - t1))
+        print("读取cluster映射文件%s完成, 用了%f秒" % (filepath, time() - t1))
         return parts
 
     def read_entity_num(self, train_filepath):
