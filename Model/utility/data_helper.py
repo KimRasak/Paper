@@ -459,7 +459,7 @@ class Data:
             entity_offset = 0
             cur_entity_num = len(list(temp_cluster.keys()))
             if entity_num_per_cluster != -1:
-                assert entity_num_per_cluster == cur_entity_num
+                assert entity_num_per_cluster == cur_entity_num, ("%d %d" % (entity_num_per_cluster, cur_entity_num))
             else:
                 entity_num_per_cluster = cur_entity_num
 
