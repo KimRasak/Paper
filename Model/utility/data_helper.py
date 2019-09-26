@@ -585,10 +585,10 @@ class Data:
                 "u": LI[:n_user, :],
                 "t": LI[n_user:, :]
             }
-        for entity_name, l_matrix in cluster["L"].items():
-            n_nonzero = l_matrix.getnnz()
-            n_whole = l_matrix.get_shape()[0] * l_matrix.get_shape()[1]
-            print(n_nonzero / n_whole)
+        # for entity_name, l_matrix in cluster["L"].items():
+        #     n_nonzero = l_matrix.getnnz()
+        #     n_whole = l_matrix.get_shape()[0] * l_matrix.get_shape()[1]
+        #     print(n_nonzero / n_whole)
 
     def do_gen_cluster_laplacian_matrix(self, clusters):
         laplacian_mode = self.laplacian_mode

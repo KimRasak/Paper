@@ -84,7 +84,7 @@ class cluster_MDR_G6(ModelUPT):
         print("t_pos_score:", self.t_pos_score)
 
         self.delt = self.t_pos_score + bias_pos - self.t_neg_score - bias_neg
-        self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score + bias_pos - self.t_neg_score - bias_neg)))
+        self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score + bias_pos - self.t_neg_score - bias_neg + 1e-8)))
 
         reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
         # reg_loss_emb = tf.nn.l2_loss(ebs) + tf.nn.l2_loss(track_bias)
