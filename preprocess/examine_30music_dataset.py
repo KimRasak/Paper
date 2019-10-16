@@ -98,7 +98,7 @@ def check_playlist_data(data, output_filepath='../data/30music/playlist_distribu
 
 
 if __name__ == '__main__':
-    playlist_data, _, _, _ = read_30music_playlists()
+    playlist_data = read_30music_playlists()
     uids, pids, tids, num_playlist_interactions = get_unique_ids(playlist_data)
     print("There are %d users, %d playlists and %d tracks. There are %d user-playlist-song interactions." % (len(uids), len(pids), len(tids), num_playlist_interactions))
 
