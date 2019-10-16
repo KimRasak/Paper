@@ -27,14 +27,47 @@ class DatasetName:
     AOTM = "aotm"
 
 
-# Define paths of data sets.
+# Define paths of raw data.
 RAW_DATA_BASE_PATH = "../raw-data"
-THIRTY_MUSIC_PATH = os.path.join(RAW_DATA_BASE_PATH, DatasetName.THIRTY_MUSIC)
-AOTM_PATH = os.path.join(RAW_DATA_BASE_PATH, DatasetName.AOTM)
+RAW_THIRTY_MUSIC_PATH = os.path.join(RAW_DATA_BASE_PATH, DatasetName.THIRTY_MUSIC)
+RAW_AOTM_PATH = os.path.join(RAW_DATA_BASE_PATH, DatasetName.AOTM)
 
-PLAYLIST_PATH = {
-    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, "entities/playlist.idomaar"),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, "aotm2011_playlists.json")
+RAW_PLAYLIST_PATH = {
+    DatasetName.THIRTY_MUSIC: os.path.join(RAW_THIRTY_MUSIC_PATH, "entities/playlist.idomaar"),
+    DatasetName.AOTM: os.path.join(RAW_AOTM_PATH, "aotm2011_playlists.json")
+}
+
+# Define paths of data sets.
+# A data set usually contains a playlist file containing the playlist data
+# and a count file containing the number of ids.
+DATA_BASE_PATH = "../data"
+THIRTY_MUSIC_PATH = os.path.join(DATA_BASE_PATH, DatasetName.THIRTY_MUSIC)
+AOTM_PATH = os.path.join(DATA_BASE_PATH, DatasetName.AOTM)
+
+PLAYLIST_FILE_NAME = "playlist.txt"
+COUNT_FILE_NAME = "count.txt"
+
+PICK_PLAYLIST_FILE_NAME = "pick_playlist.txt"
+PICK_COUNT_FILE_NAME = "pick_count.txt"
+
+WHOLE_PLAYLIST_PATH = {
+    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PLAYLIST_FILE_NAME),
+    DatasetName.AOTM: os.path.join(AOTM_PATH, PLAYLIST_FILE_NAME)
+}
+
+WHOLE_COUNT_FILE_PATH = {
+    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, COUNT_FILE_NAME),
+    DatasetName.AOTM: os.path.join(AOTM_PATH, COUNT_FILE_NAME)
+}
+
+PICK_PLAYLIST_PATH = {
+    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PICK_PLAYLIST_FILE_NAME),
+    DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_PLAYLIST_FILE_NAME)
+}
+
+PICK_COUNT_FILE_PATH = {
+    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PICK_COUNT_FILE_NAME),
+    DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_COUNT_FILE_NAME)
 }
 
 
@@ -86,7 +119,7 @@ def read_30music_events(filepath="../raw-data/30music/relations/events.idomaar")
     return data, max_uid, max_tid  # Note that the first track id is 0.
 
 
-def read_30music_playlists(filepath=PLAYLIST_PATH[DatasetName.THIRTY_MUSIC]):
+def read_30music_playlists(filepath=RAW_PLAYLIST_PATH[DatasetName.THIRTY_MUSIC]):
     # Read '30music' raw playlist data and return structured data.
 
     # 数据的完整性、正确性已经检测过, 因此没有添加assert语句。
@@ -136,7 +169,7 @@ def read_30music_playlists(filepath=PLAYLIST_PATH[DatasetName.THIRTY_MUSIC]):
     return data # Note that the first track id is 0.
 
 
-def read_aotm_playlists(filepath=PLAYLIST_PATH[DatasetName.AOTM]):
+def read_aotm_playlists(filepath=RAW_PLAYLIST_PATH[DatasetName.AOTM]):
     # Read 'aotm' raw playlist data and return structured data.
     with open('../raw-data/aotm/aotm2011_playlists.json', 'r') as file_desc:
         raw_playlists = json.loads(file_desc.read())
@@ -257,9 +290,9 @@ def compact_data_ids(playlist_data: dict, event_data: dict = None, uids=None, pi
 
 def save_dataset_num(dataset_num, n_filepath):
     # Write the number of user/playlist/track into the file.
-    num_user = dataset_num.num_user
-    num_playlist = dataset_num.num_playlist
-    num_track = dataset_num.num_track
+    num_user = dataset_num.user
+    num_playlist = dataset_num.playlist
+    num_track = dataset_num.track
 
     with open(n_filepath, 'w') as f:
         f.write("number of user\n")
@@ -415,27 +448,27 @@ def main_aotm():
 def gen_whole_dataset(dataset_name):
     # 1. Get function for reading file and read the playlist data.
     read_file_function = ReadFileFunction[dataset_name]
-    filepath = PLAYLIST_PATH[DatasetName.THIRTY_MUSIC]
+    filepath = RAW_PLAYLIST_PATH[DatasetName.THIRTY_MUSIC]
     playlist_data = read_file_function(filepath)
 
     # 2. Filter out some playlists that don't meet the need.
     filter_playlist_data(playlist_data)
 
-    # 3. Extrack the user/playlist/track ids from the filtered playlist data.
+    # 3. Extrack the user/playlist/track ids from the filtered playlist data,
+    # and count the number of ids.
     uids, pids, tids, interaction_num = get_unique_ids(playlist_data)
     dataset_num = DatasetNum(len(uids), len(pids), len(tids), interaction_num)
     print("The dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
-        dataset_num.user, dataset_num.playlist, dataset_num.track, interaction_num))
+        dataset_num.user, dataset_num.playlist, dataset_num.track, dataset_num.interaction))
 
-    # 4. Save the number of entities of dataset.
-    n_filepath = "../data/30music/count.txt"
-    save_dataset_num(dataset, n_filepath)
+    # 4. Save the number of each entity.
+    count_filepath = WHOLE_COUNT_FILE_PATH[dataset_name]
+    save_dataset_num(dataset_num, count_filepath)
 
-    # 5. Compact whole dataset ids. Save data-set.
-    playlist_data = compact_data_ids(playlist_data)
-    p_filepath = "../data/30music/playlist.txt"
-    e_filepath = "../data/30music/events.txt"
-    save_data_playlist_and_events(playlist_data, p_filepath=p_filepath, e_filepath=e_filepath)
+    # 5. Compact whole data set ids. Save data-set.
+    compact_playlist_data = compact_data_ids(playlist_data)
+    playlist_filepath = WHOLE_PLAYLIST_PATH[dataset_name]
+    save_data_playlist_and_events(compact_playlist_data, p_filepath=playlist_filepath)
 
     pass
 
