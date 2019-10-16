@@ -1,7 +1,7 @@
 
 import json
 import gzip
-from preprocess.data_helper import read_aotm_playlists, filter_playlist_data, get_playlist_ids
+from preprocess.data_helper import read_aotm_playlists, filter_playlist_data, get_unique_ids
 #
 # with open('../raw-data/aotm/aotm2011_playlists.json', 'r') as file_desc:
 #     raw_playlists = json.loads(file_desc.read())
@@ -41,10 +41,10 @@ from preprocess.data_helper import read_aotm_playlists, filter_playlist_data, ge
 
 if __name__ == '__main__':
     playlist_data = read_aotm_playlists()
-    uids, pids, tids, num_playlist_interactions = get_playlist_ids(playlist_data)
+    uids, pids, tids, num_playlist_interactions = get_unique_ids(playlist_data)
     print("There are %d users, %d playlists and %d tracks. There are %d user-playlist-song interactions." % (len(uids), len(pids), len(tids), num_playlist_interactions))
     filter_playlist_data(playlist_data)
-    uids, pids, tids, num_playlist_interactions = get_playlist_ids(playlist_data)
+    uids, pids, tids, num_playlist_interactions = get_unique_ids(playlist_data)
     print("There are %d users, %d playlists and %d tracks. There are %d user-playlist-song interactions." % (len(uids), len(pids), len(tids), num_playlist_interactions))
     # aotm whole dataset
     # There are 16204 users, 101343 playlists and 972081 tracks. There are 1984355 user-playlist-song interactions.

@@ -1,22 +1,26 @@
 import re
 import json
 import time
+from collections import namedtuple
+
 import numpy as np
 
 """
-提供各种对数据集的操作函数
-1. 读取user-song数据和user-playlist-song数据
+提供各种对数据集的操作函数, 如下:
+1. 读取user-song数据(如果有)和user-playlist-song数据
 2. 过滤用户和歌单
-3. 以user-playlist-song数据为基础，过滤user-song的数据。user-song的uid和tid都必须局限在user-playlist-song出现过的数据中。
+3. 以user-playlist-song数据为基础，过滤user-song的数据(如果有)。user-song的uid和tid都必须局限在user-playlist-song关系出现过的数据中。
 4. 保存数据集到events.txt和playlist.txt中
 5. 生成子数据集。保存到pick_events.txt和pick_playlist.txt中
-30music:
+在30music中，读取数据的方式:
 1. 从events.idomaar读取用户id和歌曲id
 2. 从playlist.idomaar读取用户id、歌单id和包含的歌曲id
 """
 
+DatasetNum = namedtuple("DatasetNum", ["num_user", "num_playlist", "num_track"])
 
 def read_30music_events(filepath="../raw-data/30music/relations/events.idomaar"):
+    # Read '30music' raw events data and return structured data.
     """
     Read the user-item interactions data.
     """
@@ -63,7 +67,9 @@ def read_30music_events(filepath="../raw-data/30music/relations/events.idomaar")
 
 
 def read_30music_playlists(filepath="../raw-data/30music/entities/playlist.idomaar"):
-    # 数据的完整性、正确性已经检测过, 因此忽视了很多assert语句。
+    # Read '30music' raw playlist data and return structured data.
+
+    # 数据的完整性、正确性已经检测过, 因此没有添加assert语句。
     # The completion and correctness of data has been inspected, so many "assert" functions are ignored.
     data = dict()
 
@@ -121,6 +127,7 @@ def read_30music_playlists(filepath="../raw-data/30music/entities/playlist.idoma
 
 
 def read_aotm_playlists(filepath="../raw-data/aotm/aotm2011_playlists.json"):
+    # Read 'aotm' raw playlist data and return structured data.
     with open('../raw-data/aotm/aotm2011_playlists.json', 'r') as file_desc:
         raw_playlists = json.loads(file_desc.read())
         data = {}
@@ -149,6 +156,11 @@ def read_aotm_playlists(filepath="../raw-data/aotm/aotm2011_playlists.json"):
 
 
 def filter_playlist_data(data, max_n_playlist=1000, min_n_track=5, max_n_track=1000):
+    # Filter the ids of users and ids of playlists which have too few/many interactions.
+    # This function may cause the ids to be non-continuous,
+    # for example, the ids of users can be 1, 2, 3, 4, and when this function runs, 3 is deleted,
+    # so the remaining ids of users are 1, 2, 4, which is non-continuous(3 is gone).
+
     uids = list(data.keys())
     for uid in uids:
         user = data[uid]
@@ -167,8 +179,9 @@ def filter_playlist_data(data, max_n_playlist=1000, min_n_track=5, max_n_track=1
                     del data[uid]
 
 
-def get_playlist_ids(data: dict):
-    unique_uids = data.keys()
+def get_unique_ids(data: dict):
+    # Read the ids of users/playlists
+    unique_uids = set(data.keys())
     unique_pids = set()
     unique_tids = set()
     num_interactions = 0
@@ -210,7 +223,7 @@ def filter_events_data(events_data: dict, valid_uids, valid_tids):
 
 def compact_data_ids(playlist_data: dict, event_data: dict = None, uids=None, pids=None, tids=None):
     if uids is None or pids is None or tids is None:
-        uids, pids, tids, _ = get_playlist_ids(playlist_data)
+        uids, pids, tids, _ = get_unique_ids(playlist_data)
     uid_dict = {uid: new_uid for new_uid, uid in enumerate(uids)}
     pid_dict = {pid: new_pid for new_pid, pid in enumerate(pids)}
     tid_dict = {tid: new_tid for new_tid, tid in enumerate(tids)}
@@ -248,13 +261,28 @@ def compact_data_ids(playlist_data: dict, event_data: dict = None, uids=None, pi
     return new_playlist_data, new_events_data
 
 
-def generate_subset(playlist_data: dict, pids=None, proportion=0.2):
-    if pids is None:
-        _, pids, _, _ = get_playlist_ids(playlist_data)
+def save_dataset_num(dataset_num, n_filepath):
+    # Write the number of user/playlist/track into the file.
+    num_user = dataset_num.num_user
+    num_playlist = dataset_num.num_playlist
+    num_track = dataset_num.num_track
+
+    with open(n_filepath, 'w') as f:
+        f.write("number of user\n")
+        f.write(num_user + "\n")
+        f.write("number of playlist\n")
+        f.write(num_playlist + "\n")
+        f.write("number of track\n")
+        f.write(num_track + "\n")
+
+
+def generate_subset(playlist_data: dict, unique_pids=None, proportion=0.2):
+    if unique_pids is None:
+        _, unique_pids, _, _ = get_unique_ids(playlist_data)
 
     # Generate subset pids.
-    num_pick_pids = int(len(pids) * proportion)
-    pick_pids = np.random.choice(list(pids), num_pick_pids, replace=False)
+    num_pick_pids = int(len(unique_pids) * proportion)
+    pick_pids = np.random.choice(list(unique_pids), num_pick_pids, replace=False)
 
     # Filter playlist data playlists.
     pick_playlist_data = dict()
@@ -263,16 +291,17 @@ def generate_subset(playlist_data: dict, pids=None, proportion=0.2):
         if len(new_user) > 0:
             pick_playlist_data[uid] = new_user
 
-    uids, pids, tids, num_playlist_interactions = get_playlist_ids(pick_playlist_data)
+    uids, unique_pids, tids, num_playlist_interactions = get_unique_ids(pick_playlist_data)
 
     print("generate_subset: The [sub]-dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
-        len(uids), len(pids), len(tids), num_playlist_interactions))
+        len(uids), len(unique_pids), len(tids), num_playlist_interactions))
 
     return pick_playlist_data
 
 
-def save_data(playlist_data: dict, event_data: dict=None, p_filepath="../data/30music/playlist.txt",
-              e_filepath="../data/30music/events.txt"):
+def save_data_playlist_and_events(playlist_data: dict, p_filepath, e_filepath,
+                                  event_data: dict=None, ):
+    # Write playlist data to file.
     with open(p_filepath, 'w') as f:
         f.write("user_id playlist_id track_ids\n")
         for uid, user in playlist_data.items():
@@ -283,7 +312,10 @@ def save_data(playlist_data: dict, event_data: dict=None, p_filepath="../data/30
                 f.write("\n")
 
     if event_data is None:
+        # No events data to write. just return.
         return
+
+    # Write events data to file.
     with open(e_filepath, 'w') as f:
         f.write("user_id track_ids\n")
         for uid, tids in event_data.items():
@@ -296,22 +328,50 @@ def save_data(playlist_data: dict, event_data: dict=None, p_filepath="../data/30
 def main_30music():
     playlist_data, _, _, _ = read_30music_playlists()
 
+    # 1.1 Filter out some playlists that don't meet the need.
     filter_playlist_data(playlist_data)
-    uids, pids, tids, num_playlist_interactions = get_playlist_ids(playlist_data)
 
+    # 1.2 Extrack the user/playlist/track ids from the playlist data.
+    uids, pids, tids, num_playlist_interactions = get_unique_ids(playlist_data)
+    num_user = len(uids)
+    num_playlist = len(pids)
+    num_track = len(tids)
+    dataset_num = DatasetNum(num_user, num_playlist, num_track)
     print("The dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
-        len(uids), len(pids), len(tids), num_playlist_interactions))
+        num_user, num_playlist, num_track, num_playlist_interactions))
 
-    # Compact whole dataset ids. Save dataset.
+    # 1.3 Save the number of entities of dataset.
+    n_filepath = "../data/30music/count.txt"
+    save_dataset_num(dataset_num, n_filepath)
+
+    # 1.4 Compact whole dataset ids. Save data-set.
     playlist_data = compact_data_ids(playlist_data)
-    save_data(playlist_data)
+    p_filepath = "../data/30music/playlist.txt"
+    e_filepath = "../data/30music/events.txt"
+    save_data_playlist_and_events(playlist_data, p_filepath=p_filepath, e_filepath=e_filepath)
 
-    # Generate subset. Compact subset ids. Save sub-dataset.
+    # 2.1 Generate subset. Compact subset ids. Save sub-dataset.
     pick_playlist_data = generate_subset(playlist_data, proportion=0.6)
     pick_playlist_data = compact_data_ids(pick_playlist_data)
     pick_p_filepath = "../data/30music/pick_playlist.txt"
     pick_e_filepath = "../data/30music/pick_events.txt"
-    save_data(pick_playlist_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)
+
+    # 2.2 Extrack the user/playlist/track ids from the playlist data.
+    pick_uids, pick_pids, pick_tids, num_pick_playlist_interactions = get_unique_ids(playlist_data)
+    num_user = len(uids)
+    num_playlist = len(pids)
+    num_track = len(tids)
+    dataset_num = DatasetNum(num_user, num_playlist, num_track)
+    print("The dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
+        num_user, num_playlist, num_track, num_playlist_interactions))
+    pick_dataset_num = DatasetNum()
+
+    # 2.3 Save the number of entities of sub-data-set.
+    n_filepath = "../data/30music/pick_count.txt"
+    save_dataset_num(dataset_num, n_filepath)
+
+    # 2.4 Save the sub-data-set.
+    save_data_playlist_and_events(pick_playlist_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)
     # Read event dataset comlete. Cost 2 seconds. Read 48422 playlists. Max uid: 45169, max pid: 11766362, max tid: 5023056
 
     # Before filter.
@@ -331,7 +391,7 @@ def main_aotm():
     playlist_data = read_aotm_playlists()
 
     filter_playlist_data(playlist_data)
-    uids, pids, tids, num_playlist_interactions = get_playlist_ids(playlist_data)
+    uids, pids, tids, num_playlist_interactions = get_unique_ids(playlist_data)
 
     print("The dataset has %d user ids, %d playlist ids, %d track ids and %d interactions" % (
         len(uids), len(pids), len(tids), num_playlist_interactions))
@@ -340,19 +400,25 @@ def main_aotm():
     playlist_data = compact_data_ids(playlist_data)
     p_filepath = "../data/aotm/playlist.txt"
     e_filepath = "../data/aotm/events.txt"
-    save_data(playlist_data, p_filepath=p_filepath, e_filepath=e_filepath)
+    save_data_playlist_and_events(playlist_data, p_filepath=p_filepath, e_filepath=e_filepath)
 
     # Generate subset. Compact subset ids. Save sub-dataset.
     pick_playlist_data = generate_subset(playlist_data, proportion=0.4)
     pick_playlist_data = compact_data_ids(pick_playlist_data)
     pick_p_filepath = "../data/aotm/pick_playlist.txt"
     pick_e_filepath = "../data/aotm/pick_events.txt"
-    save_data(pick_playlist_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)
+    save_data_playlist_and_events(pick_playlist_data, p_filepath=pick_p_filepath, e_filepath=pick_e_filepath)
     # aotm filtered data.
     # The dataset has 15863 user ids, 100013 playlist ids, 970678 track ids and 1981525 interactions
     # 20%
     # generate_subset: The [sub]-dataset has 6974 user ids, 20002 playlist ids, 270124 track ids and 396295 interactions
     # 40%
     # generate_subset: The [sub]-dataset has 10170 user ids, 40005 playlist ids, 473852 track ids and 792283 interactions
+
+def gen_dataset(dataset_name):
+    # Read raw dataset files and write dataset files.
+
+
+
 if __name__ == '__main__':
     main_30music()
