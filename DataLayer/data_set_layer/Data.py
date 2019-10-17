@@ -14,10 +14,10 @@ class Data:
     PICK_TEST_FILE_NAME = PREFIX_PICK_FILE + "_" + TEST_FILE_NAME
     PICK_EVENTS_FILE_NAME = PREFIX_PICK_FILE + "_" + EVENTS_FILE_NAME
 
-    def __init__(self, data_base_path, use_picked_data=True,
+    def __init__(self, base_data_path, use_picked_data=True,
                  batch_size=256, epoch_times=4, is_test_mode=False):
         t_all_start = time()
-        self.data_base_path = data_base_path
+        self.data_base_path = base_data_path
         self.use_picked_data = use_picked_data
 
         self.batch_size = batch_size
@@ -25,15 +25,15 @@ class Data:
         # Define data set paths.
         if use_picked_data:
             print("{pick} == %r, Using picked playlist data. That is, you're using a sub-dataset" % use_picked_data)
-            train_filepath = os.path.join(data_base_path, Data.PICK_TRAIN_FILE_NAME)
-            test_filepath = os.path.join(data_base_path, Data.PICK_TRAIN_FILE_NAME)
-            event_filepath = os.path.join(data_base_path, Data.PICK_EVENTS_FILE_NAME)
+            train_filepath = os.path.join(base_data_path, Data.PICK_TRAIN_FILE_NAME)
+            test_filepath = os.path.join(base_data_path, Data.PICK_TRAIN_FILE_NAME)
+            event_filepath = os.path.join(base_data_path, Data.PICK_EVENTS_FILE_NAME)
             # cluster_map_filepath = data_base_path + "/pick_cluster_%d.txt" % (num_cluster)
         else:
             print("{pick} == %r, Using complete playlist data. That is, you're using a complete dataset" % use_picked_data)
-            train_filepath = os.path.join(data_base_path, Data.TRAIN_FILE_NAME)
-            test_filepath = os.path.join(data_base_path, Data.TEST_FILE_NAME)
-            event_filepath = os.path.join(data_base_path, Data.EVENTS_FILE_NAME)
+            train_filepath = os.path.join(base_data_path, Data.TRAIN_FILE_NAME)
+            test_filepath = os.path.join(base_data_path, Data.TEST_FILE_NAME)
+            event_filepath = os.path.join(base_data_path, Data.EVENTS_FILE_NAME)
             # cluster_map_filepath = data_base_path + "/cluster_%s_%d.txt" % (laplacian_mode, num_cluster)
 
         # 验证laplacian模式
