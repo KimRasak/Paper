@@ -1,6 +1,6 @@
 import os
 from time import time
-
+import scipy.sparse as sp
 
 class Data:
     # File names of data set.

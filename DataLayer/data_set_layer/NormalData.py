@@ -1,4 +1,4 @@
-from Model.utility.Data import Data
+from DataLayer.data_set_layer.Data import Data
 
 
 class NormalData(Data):

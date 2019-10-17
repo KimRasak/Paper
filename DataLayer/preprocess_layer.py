@@ -1,8 +1,8 @@
 import os
 import numpy as np
 
-import FileLayer.raw_data_layer as raw_data_layer
-import FileLayer.data_set_layer as data_set_layer
+import FileLayer.raw_file_layer as raw_file_layer
+import FileLayer.data_file_layer as data_file_layer
 from DataLayer.DatasetNum import DatasetNum
 
 """
@@ -70,8 +70,8 @@ PICK_COUNT_FILE_PATH = {
 
 # Define read functions for data sets.
 ReadFileFunction = {
-    DatasetName.THIRTY_MUSIC: raw_data_layer.read_raw_30music_playlists,
-    DatasetName.AOTM: raw_data_layer.read_raw_aotm_playlists
+    DatasetName.THIRTY_MUSIC: raw_file_layer.read_raw_30music_playlists,
+    DatasetName.AOTM: raw_file_layer.read_raw_aotm_playlists
 }
 
 
@@ -204,12 +204,12 @@ def gen_whole_dataset(dataset_name):
 
     # 4. Save the number of each entity.
     count_filepath = WHOLE_COUNT_FILE_PATH[dataset_name]
-    data_set_layer.write_count_file(dataset_num, count_filepath)
+    data_file_layer.write_count_file(dataset_num, count_filepath)
 
     # 5. Compact whole data set ids. Save data-set.
     compact_playlist_data = compact_data_ids(playlist_data)
     playlist_filepath = WHOLE_PLAYLIST_PATH[dataset_name]
-    data_set_layer.write_playlist_data(compact_playlist_data, playlist_data_path=playlist_filepath)
+    data_file_layer.write_playlist_data(compact_playlist_data, playlist_data_path=playlist_filepath)
 
 
 def gen_sub_dataset(dataset_name, playlist_data, proportion=0.6):
@@ -229,11 +229,11 @@ def gen_sub_dataset(dataset_name, playlist_data, proportion=0.6):
         pick_dataset_num.user, pick_dataset_num.playlist, pick_dataset_num.track, pick_dataset_num.interaction))
 
     count_path = PICK_COUNT_FILE_PATH[dataset_name]
-    data_set_layer.write_count_file(pick_dataset_num, count_path)
+    data_file_layer.write_count_file(pick_dataset_num, count_path)
 
     # 3. Save the sub-data-set.
     playlist_path = PICK_PLAYLIST_PATH[dataset_name]
-    data_set_layer.write_playlist_data(pick_playlist_data, playlist_data_path=playlist_path)
+    data_file_layer.write_playlist_data(pick_playlist_data, playlist_data_path=playlist_path)
 
 
 def gen_dataset(dataset_name):
