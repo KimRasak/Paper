@@ -57,13 +57,18 @@ def split_train_test(playlist_data: dict, train_file_path, test_file_path, propo
     data_file_layer.write_playlist_data(test_data, test_file_path)
 
 
-if __name__ == '__main__':
+def main():
+    # Read whole playlist data set.
     data_set_name = DatasetName.THIRTY_MUSIC
     whole_playlist_path = WHOLE_PLAYLIST_PATH[data_set_name]
+    whole_playlist_data = data_file_layer.read_playlist_data(whole_playlist_path)
+
+    # Split whole data set into train/test data set.
     train_file_path = get_train_file_path(data_set_name)
     test_file_path = get_test_file_path(data_set_name)
-
-    whole_playlist_data = data_file_layer.read_playlist_data(whole_playlist_path)
     split_train_test(whole_playlist_data, train_file_path, test_file_path)
 
+
+if __name__ == '__main__':
+    main()
 

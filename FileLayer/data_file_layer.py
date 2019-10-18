@@ -22,6 +22,7 @@ def get_count_file_path(use_picked_data, data_set_name):
     else:
         return PICK_COUNT_FILE_PATH[data_set_name]
 
+
 def write_playlist_data(playlist_data: dict, playlist_data_path):
     """
     Write playlist data to file.

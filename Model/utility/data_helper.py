@@ -130,9 +130,10 @@ class Data:
             raise Exception("Wrong laplacian mode. Expected one of %r, got %r" % (laplacian_modes, laplacian_mode))
         self.laplacian_mode = laplacian_mode
 
-        # Read and print statistics.
+        # Read the number of entities and print statistics.
         self.read_entity_num(train_filepath)
 
+        # Define matrices and dicts for later use.
         if "cluster" not in laplacian_mode:
             self.R_up = sp.dok_matrix((self.n_user, self.n_playlist), dtype=np.float64)
             self.R_ut = sp.dok_matrix((self.n_user, self.n_track), dtype=np.float64)
@@ -152,13 +153,15 @@ class Data:
             # Initialize matrix R_up, matrix R_pt, dict up and dict pt.
             self.read_train_file(train_filepath, reductive_ut=reductive_ut)
 
-            # Initialize test_set
+            # Initialize self.test_set
             self.read_test_file(test_filepath)
 
         self.n_batch = int(np.ceil(self.n_train / self.batch_size)) * epoch_times
         print("There are %d training instances. Each epoch has %d batches with batch size of %d." % (self.n_train, self.n_batch, self.batch_size))
 
+        # set u/p/t offset.
         self.set_offset()
+
         # 读取cluster映射
         if "cluster" in laplacian_mode:
             print("laplacian_mode=%r, loading clustered laplacian matrix." % laplacian_mode)
