@@ -3,6 +3,7 @@ from time import time
 from abc import ABCMeta, abstractmethod
 
 import scipy.sparse as sp
+import numpy as np
 
 
 import FileLayer.data_file_layer as data_file_layer
@@ -28,37 +29,28 @@ class Data(metaclass=ABCMeta):
 
         self.batch_size = batch_size
 
+        # Define the file paths of the data set.
         train_file_path = data_file_layer.get_train_file_path(use_picked_data, data_set_name)
         test_file_path = data_file_layer.get_test_file_path(use_picked_data, data_set_name)
         count_file_path = data_file_layer.get_count_file_path(use_picked_data, data_set_name)
 
         # Define data set paths.
         if use_picked_data:
-            print("{pick} == %r, Using picked playlist data. That is, you're using a sub-dataset" % use_picked_data)
+            print("{pick} == %r, you're using a sub-dataset" % use_picked_data)
         else:
-            print("{pick} == %r, Using complete playlist data. That is, you're using a complete dataset" % use_picked_data)
-
-        # 验证laplacian模式
-        laplacian_modes = ["PT2", "PT4", "UT", "UPT", "None", "TestPT", "TestUPT",
-                           "clusterPT2", "clusterPT4", "clusterUT", "clusterUPT"]
+            print("{pick} == %r, you're using a complete dataset" % use_picked_data)
 
         # Read number of entities in the data set.
         self.data_set_num = self.__read_count_file(count_file_path)
         self.sum = self.__get_data_sum(self.data_set_num)
 
-        self.__init_relation_dict()
+        train_data = data_file_layer.read_playlist_data(train_file_path)
+        self.__init_relation_data(train_data)
 
-        if "cluster" not in laplacian_mode:
-            self.R_up = sp.dok_matrix((self.n_user, self.n_playlist), dtype=np.float64)
-            self.R_ut = sp.dok_matrix((self.n_user, self.n_track), dtype=np.float64)
-            self.R_pt = sp.dok_matrix((self.n_playlist, self.n_track), dtype=np.float64)
-        self.pt = {}  # Storing playlist-track relationship of training set.
-        self.up = {}  # Storing user-playlist relationship of training set.
-        self.ut = {}  # Storing user-track relationship of training set.
-        self.test_set = []  # Storing user-playlist-track test set.
+        test_data = data_file_layer.read_playlist_data(test_file_path)
+        self.__init_test_data(test_data)
 
-
-        # Print time used for reading and pre-processing data.
+        # Print total time used.
         t_all_end = time()
         print("Reading data used %d seconds in all." % (t_all_end - t_all_start))
 
@@ -73,14 +65,26 @@ class Data(metaclass=ABCMeta):
 
 
     @abstractmethod
-    def __init_relation_dict(self):
+    def __init_relation_data(self, data: dict):
         """
         Initialize dicts for storing the relationship of entities.
 
-        :return: nothing
+        :return: null
         """
         pass
 
+    @abstractmethod
+    def __init_relation_dict(self, data: dict):
+        """
+        Init matrices of relations among
+        :param data:
+        :return:
+        """
+        pass
+    
+    @abstractmethod
+    def __init_test_data(self, test_data: dict):
+        pass
 
-    def get_dataset_name(self):
-        return self.data_base_path.split("/")[-1]
+
+

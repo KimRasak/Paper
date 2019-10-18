@@ -51,7 +51,8 @@ def set_maxtrix_value(A, R, m_offset, n_offset, alpha=1):
         A[j + n_offset, i + m_offset] = alpha
 
 
-def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix, alpha):  # Get matrix "A" among user-playlist-track relationship.
+def get_A_3(R_up: sp.spmatrix, R_ut: sp.spmatrix, R_pt: sp.spmatrix, alpha):
+    # Get matrix "A" among user-playlist-track relationship.
     """
     A = [ 0      R_up   R_ut
           R_up_T  0     R_pt
