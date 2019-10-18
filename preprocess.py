@@ -3,7 +3,8 @@ import numpy as np
 
 import FileLayer.raw_file_layer as raw_file_layer
 import FileLayer.data_file_layer as data_file_layer
-from DataLayer.DatasetNum import DatasetNum
+from FileLayer import DatasetNum, DatasetName, RAW_PLAYLIST_PATH, PICK_COUNT_FILE_PATH, WHOLE_PLAYLIST_PATH, PICK_PLAYLIST_PATH, \
+    WHOLE_COUNT_FILE_PATH
 
 """
 提供各种对数据集的操作函数, 如下:
@@ -16,56 +17,6 @@ from DataLayer.DatasetNum import DatasetNum
 1. 从events.idomaar读取用户id和歌曲id
 2. 从playlist.idomaar读取用户id、歌单id和包含的歌曲id
 """
-
-
-# Define names of data sets.
-class DatasetName:
-    THIRTY_MUSIC = "30music"
-    AOTM = "aotm"
-
-
-# Define paths of raw data.
-RAW_DATA_BASE_PATH = "../raw-data"
-RAW_THIRTY_MUSIC_PATH = os.path.join(RAW_DATA_BASE_PATH, DatasetName.THIRTY_MUSIC)
-RAW_AOTM_PATH = os.path.join(RAW_DATA_BASE_PATH, DatasetName.AOTM)
-
-RAW_PLAYLIST_PATH = {
-    DatasetName.THIRTY_MUSIC: os.path.join(RAW_THIRTY_MUSIC_PATH, "entities/playlist.idomaar"),
-    DatasetName.AOTM: os.path.join(RAW_AOTM_PATH, "aotm2011_playlists.json")
-}
-
-# Define paths of data sets.
-# A data set usually contains a playlist file containing the playlist data
-# and a count file containing the number of ids.
-DATA_BASE_PATH = "../data"
-THIRTY_MUSIC_PATH = os.path.join(DATA_BASE_PATH, DatasetName.THIRTY_MUSIC)
-AOTM_PATH = os.path.join(DATA_BASE_PATH, DatasetName.AOTM)
-
-PLAYLIST_FILE_NAME = "playlist.txt"
-COUNT_FILE_NAME = "count.txt"
-
-PICK_PLAYLIST_FILE_NAME = "pick_playlist.txt"
-PICK_COUNT_FILE_NAME = "pick_count.txt"
-
-WHOLE_PLAYLIST_PATH = {
-    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PLAYLIST_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, PLAYLIST_FILE_NAME)
-}
-
-WHOLE_COUNT_FILE_PATH = {
-    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, COUNT_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, COUNT_FILE_NAME)
-}
-
-PICK_PLAYLIST_PATH = {
-    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PICK_PLAYLIST_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_PLAYLIST_FILE_NAME)
-}
-
-PICK_COUNT_FILE_PATH = {
-    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PICK_COUNT_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_COUNT_FILE_NAME)
-}
 
 
 # Define read functions for data sets.

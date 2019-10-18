@@ -1,8 +1,15 @@
 import os
 from time import time
+from abc import ABCMeta, abstractmethod
+
 import scipy.sparse as sp
 
-class Data:
+
+import FileLayer.data_file_layer as data_file_layer
+from FileLayer import DatasetNum
+
+
+class Data(metaclass=ABCMeta):
     # File names of data set.
     TRAIN_FILE_NAME = "train.txt"
     TEST_FILE_NAME = "test.txt"
@@ -14,37 +21,30 @@ class Data:
     PICK_TEST_FILE_NAME = PREFIX_PICK_FILE + "_" + TEST_FILE_NAME
     PICK_EVENTS_FILE_NAME = PREFIX_PICK_FILE + "_" + EVENTS_FILE_NAME
 
-    def __init__(self, base_data_path, use_picked_data=True,
+    def __init__(self, data_set_name, use_picked_data=True,
                  batch_size=256, epoch_times=4, is_test_mode=False):
         t_all_start = time()
-        self.data_base_path = base_data_path
         self.use_picked_data = use_picked_data
 
         self.batch_size = batch_size
 
+        train_file_path = data_file_layer.get_train_file_path(use_picked_data, data_set_name)
+        test_file_path = data_file_layer.get_test_file_path(use_picked_data, data_set_name)
+        count_file_path = data_file_layer.get_count_file_path(use_picked_data, data_set_name)
+
         # Define data set paths.
         if use_picked_data:
             print("{pick} == %r, Using picked playlist data. That is, you're using a sub-dataset" % use_picked_data)
-            train_filepath = os.path.join(base_data_path, Data.PICK_TRAIN_FILE_NAME)
-            test_filepath = os.path.join(base_data_path, Data.PICK_TRAIN_FILE_NAME)
-            event_filepath = os.path.join(base_data_path, Data.PICK_EVENTS_FILE_NAME)
-            # cluster_map_filepath = data_base_path + "/pick_cluster_%d.txt" % (num_cluster)
         else:
             print("{pick} == %r, Using complete playlist data. That is, you're using a complete dataset" % use_picked_data)
-            train_filepath = os.path.join(base_data_path, Data.TRAIN_FILE_NAME)
-            test_filepath = os.path.join(base_data_path, Data.TEST_FILE_NAME)
-            event_filepath = os.path.join(base_data_path, Data.EVENTS_FILE_NAME)
-            # cluster_map_filepath = data_base_path + "/cluster_%s_%d.txt" % (laplacian_mode, num_cluster)
 
         # 验证laplacian模式
         laplacian_modes = ["PT2", "PT4", "UT", "UPT", "None", "TestPT", "TestUPT",
                            "clusterPT2", "clusterPT4", "clusterUT", "clusterUPT"]
-        if laplacian_mode not in laplacian_modes:
-            raise Exception("Wrong laplacian mode. Expected one of %r, got %r" % (laplacian_modes, laplacian_mode))
-        self.laplacian_mode = laplacian_mode
 
         # Read and print statistics.
-        self.read_entity_num(train_filepath)
+        self.data_set_num = self.__read_count_file(count_file_path)
+        self.set_data_sum(self.data_set_num)
 
         if "cluster" not in laplacian_mode:
             self.R_up = sp.dok_matrix((self.n_user, self.n_playlist), dtype=np.float64)
@@ -59,6 +59,15 @@ class Data:
         # Print time used for reading and pre-processing data.
         t_all_end = time()
         print("Reading data used %d seconds in all." % (t_all_end - t_all_start))
+
+
+    @staticmethod
+    def __read_count_file(count_file_path):
+        return data_file_layer.read_count_file(count_file_path)
+
+    @abstractmethod
+    def set_data_sum(self, data_set_num: DatasetNum):
+        pass
 
     def get_dataset_name(self):
         return self.data_base_path.split("/")[-1]

@@ -109,6 +109,7 @@ class Data:
         self.alpha = alpha
         self.num_cluster = num_cluster
 
+
         if pick is True:
             print("{pick} == %r, Using picked playlist data. That is, you're using a sub-dataset" % pick)
             train_filepath = path + "/pick_train.txt"
