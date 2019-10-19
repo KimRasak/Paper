@@ -67,7 +67,7 @@ class Data(metaclass=ABCMeta):
 
 
     @abstractmethod
-    def __init_relation_data(self, data: dict):
+    def __init_relation_data(self, train_data: dict):
         """
         Initialize dicts for storing the relationship of entities.
 
@@ -76,23 +76,19 @@ class Data(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def __init_relation_dict(self, data: dict):
+    def __init_relation_dict(self, train_data: dict):
         """
-        Init matrices of relations among
-        :param data:
-        :return:
+        Init matrices of relations among entities.
+        :param train_data: Playlist data for training.
+        :return: null
         """
         pass
 
-<<<<<<< HEAD
-    @abstractmethod
-    def __init_test_data(self, test_data: dict):
-        pass
-=======
     @staticmethod
     def __gen_test_list(test_data: dict):
         t_test_start = time()
         test_list = []
+        # Iterate each u-p-t pair and add them to the test list.
         for uid, user in test_data.items():
             for pid, tids in user.items():
                 for tid in tids:
@@ -102,19 +98,6 @@ class Data(metaclass=ABCMeta):
         print("Generate test list used %2f seconds." % (t_test_end - t_test_start))
         return test_list
 
-    def read_test_file(self, test_filepath):
-        # 设置test_set
-        t_test_set = time()
-        with open(test_filepath) as f:
-            line = f.readline()
-            while line:
-                ids = [int(i) for i in line.split(' ') if i.isdigit()]
-                uid, pid, tid = ids[0], ids[1], ids[2]
-                test_tuple = [uid, pid, tid]
-                self.test_set.append(test_tuple)
-                line = f.readline()
-        print("Used %d seconds. Have read test set." % (time() - t_test_set))
->>>>>>> 6fe9c21cdb8216f6b0609b6fd013af9c647843c4
 
 
 
