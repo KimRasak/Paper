@@ -81,7 +81,7 @@ class Data(metaclass=ABCMeta):
         :return:
         """
         pass
-    
+
     @abstractmethod
     def __init_test_data(self, test_data: dict):
         pass
