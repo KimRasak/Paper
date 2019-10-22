@@ -1,4 +1,4 @@
-raw-data/
+﻿raw-data/
 *.idomaar
 *.xml
 *.iml
@@ -15,3 +15,5 @@ train*.py
 
 # 训练输出
 *rr*.txt
+
+logs
