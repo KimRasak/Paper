@@ -63,6 +63,9 @@ class Data(metaclass=ABCMeta):
 
     @abstractmethod
     def __get_data_sum(self, data_set_num: DatasetNum):
+        """
+        Given a DatasetNum Object, calculate and return the sum of all entities.
+        """
         pass
 
 
