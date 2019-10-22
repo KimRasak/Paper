@@ -24,12 +24,12 @@ def MDR_layer(embed_user, embed_playlist, embed_track, B1, B2):
 
 class cluster_MDR_G6(ModelUPT):
     def get_init_embeddings(self):
-        return tf.Variable(self.initializer([self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size]))
+        return tf.Variable(self.initializer([self.data.n_user + self.data.n_playlist + self.data.n_track, self.embedding_size]), name="initial_ebs")
 
     def build_graph_layers(self, embeddings):
-        embeddings1 = self.build_cluster_graph_UPT(embeddings, self.embedding_size, self.embedding_size)
-        embeddings2 = self.build_cluster_graph_UPT(embeddings1, self.embedding_size, self.embedding_size)
-        embeddings3 = self.build_cluster_graph_UPT(embeddings2, self.embedding_size, self.embedding_size)
+        embeddings1 = self.build_cluster_graph_UPT(embeddings, self.embedding_size, self.embedding_size, 0)
+        embeddings2 = self.build_cluster_graph_UPT(embeddings1, self.embedding_size, self.embedding_size, 1)
+        embeddings3 = self.build_cluster_graph_UPT(embeddings2, self.embedding_size, self.embedding_size, 2)
         return embeddings1, embeddings2, embeddings3
 
     def concat_eb(self, eb0, eb1):
@@ -59,15 +59,15 @@ class cluster_MDR_G6(ModelUPT):
         self.ebs0, self.ebs1, self.ebs2, self.ebs3 = ebs0, ebs1, ebs2, ebs3
         ebs_list = [ebs0, ebs1, ebs2, ebs3]
 
-        ebs = tf.concat(ebs_list, 1)
-        track_bias = tf.Variable(self.initializer([self.data.n_track]))
+        ebs = tf.concat(ebs_list, 1, name="eb_matrix_layers_horizontally_concat")
+        track_bias = tf.Variable(self.initializer([self.data.n_track]), name="track_bias_ebs")
 
-        embed_user = tf.nn.embedding_lookup(ebs, self.X_user)
-        embed_playlist = tf.nn.embedding_lookup(ebs, self.X_playlist)
-        embed_pos_item = tf.nn.embedding_lookup(ebs, self.X_pos_item)
-        embed_neg_item = tf.nn.embedding_lookup(ebs, self.X_neg_item)
-        bias_pos = tf.nn.embedding_lookup(track_bias, self.X_pos_item_bias)
-        bias_neg = tf.nn.embedding_lookup(track_bias, self.X_neg_item_bias)
+        embed_user = tf.nn.embedding_lookup(ebs, self.X_user, name="user_eb_lookup")
+        embed_playlist = tf.nn.embedding_lookup(ebs, self.X_playlist, name="user_eb_lookup")
+        embed_pos_item = tf.nn.embedding_lookup(ebs, self.X_pos_item, name="pos_item_eb_lookup")
+        embed_neg_item = tf.nn.embedding_lookup(ebs, self.X_neg_item, name="neg_item_eb_lookup")
+        bias_pos = tf.nn.embedding_lookup(track_bias, self.X_pos_item_bias, name="pos_item_bias_lookup")
+        bias_neg = tf.nn.embedding_lookup(track_bias, self.X_neg_item_bias, name="neg_item_bias_lookup")
         print("embed_pos_item", embed_pos_item.shape)
         print("embed_playlist:", embed_playlist)
 
@@ -76,8 +76,8 @@ class cluster_MDR_G6(ModelUPT):
         self.t_eb_pos_item = embed_pos_item
         self.t_eb_neg_item = embed_neg_item
 
-        B1 = tf.Variable(self.initializer([self.embedding_size * 4]))
-        B2 = tf.Variable(self.initializer([self.embedding_size * 4]))
+        B1 = tf.Variable(self.initializer([self.embedding_size * 4]), "B1")
+        B2 = tf.Variable(self.initializer([self.embedding_size * 4]), "B2")
 
         self.t_pos_score = MDR_layer(embed_user, embed_playlist, embed_pos_item, B1, B2)
         self.t_neg_score = MDR_layer(embed_user, embed_playlist, embed_neg_item, B1, B2)
@@ -86,10 +86,11 @@ class cluster_MDR_G6(ModelUPT):
         self.delt = self.t_pos_score + bias_pos - self.t_neg_score - bias_neg
         self.t_mf_loss = tf.reduce_sum(-tf.log(tf.nn.sigmoid(self.t_pos_score + bias_pos - self.t_neg_score - bias_neg + 1e-8)))
 
-        reg_loss_B = tf.nn.l2_loss(B1) + tf.nn.l2_loss(B2)
+        reg_loss_B = tf.nn.l2_loss(B1, name="l2_loss_B1") + tf.nn.l2_loss(B2, name="l2_loss_B2")
         # reg_loss_emb = tf.nn.l2_loss(ebs) + tf.nn.l2_loss(track_bias)
-        reg_loss_emb = tf.nn.l2_loss(embed_user) + tf.nn.l2_loss(embed_pos_item) + tf.nn.l2_loss(embed_neg_item) + tf.nn.l2_loss(bias_pos) + tf.nn.l2_loss(bias_neg)
-        self.t_reg_loss = self.reg_rate * (reg_loss_emb + reg_loss_B + self.t_weight_loss)
+        reg_loss_emb = tf.nn.l2_loss(embed_user, name="l2_loss_user") + tf.nn.l2_loss(embed_pos_item, name="l2_loss_pos_item") +\
+                       tf.nn.l2_loss(embed_neg_item, name="l2_loss_neg_item") + tf.nn.l2_loss(bias_pos, name="l2_loss_pos_bias") + tf.nn.l2_loss(bias_neg, name="l2_loss_neg_bias")
+        self.t_reg_loss = tf.multiply(self.reg_rate, (reg_loss_emb + reg_loss_B + self.t_weight_loss), name="reg_loss")
         self.t_loss = self.t_mf_loss + self.t_reg_loss
         self.t_opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.t_loss)
 

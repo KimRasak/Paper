@@ -29,16 +29,15 @@ def convert_sp_mat_to_sp_tensor(X):
     return tf.sparse.SparseTensor(indices, coo.data, dense_shape=coo.shape)
 
 
-def dropout_sparse(X, keep_prob, n_nonzero_elems):
+def dropout_sparse(X, keep_prob, n_nonzero_elems, fold_name):
     """
     Dropout for sparse tensors.
     """
     noise_shape = [n_nonzero_elems]
     random_tensor = keep_prob
     random_tensor += tf.random_uniform(noise_shape)
-    dropout_mask = tf.cast(tf.floor(random_tensor), dtype=tf.bool)
+    dropout_mask = tf.cast(tf.floor(random_tensor), dtype=tf.bool, name="dropout_mask")
     pre_out = tf.sparse_retain(X, dropout_mask)
-
     return pre_out * tf.div(1., keep_prob)
 
 class BaseModel(metaclass=ABCMeta):
@@ -125,9 +124,9 @@ class BaseModel(metaclass=ABCMeta):
                 assert isinstance(L_entity, sp.spmatrix) and isinstance(LI_entity, sp.spmatrix)
 
                 cluster["L"][entity_name] = self.sp_to_tensor_fold(L_entity,
-                                                                   self.node_dropout_flag)
+                                                                   self.node_dropout_flag, "cluster_%d_%s_L" % (cluster_no, entity_name))
                 cluster["LI"][entity_name] = self.sp_to_tensor_fold(LI_entity,
-                                                                   self.node_dropout_flag)
+                                                                   self.node_dropout_flag, "cluster_%d_%s_LI" % (cluster_no, entity_name))
 
 
     def build_model(self):
@@ -165,6 +164,8 @@ class BaseModel(metaclass=ABCMeta):
         # Create session
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
+        writer = tf.summary.FileWriter("logs", self.sess.graph)
+        print("Writer has written logs.")
         self.saver = tf.train.Saver()
 
     def get_model_name(self):
@@ -329,7 +330,12 @@ class BaseModel(metaclass=ABCMeta):
         side_embeddings = tf.concat(temp_embed, 0)
         return side_embeddings
 
-    def build_weight_graph(self, LIs, Ls, embeddings, entity_names, W_sides, W_dots, entity_embs):
+    def build_weight_graph(self, LIs, Ls, embeddings, entity_names, W_sides, W_dots, entity_embs, layer_index, cluster_no=None):
+        if not cluster_no:
+            tensor_name_prefix = "layer%d" % layer_index
+        else:
+            tensor_name_prefix = "layer%d_cluster%d" % (layer_index, cluster_no)
+
         agg_folds = []
         for entity_name in entity_names:
             W_side = W_sides[entity_name]
@@ -339,17 +345,17 @@ class BaseModel(metaclass=ABCMeta):
             LI_side_embed = tf.sparse_tensor_dense_matmul(LIs[entity_name], embeddings)
             L_side_embed = tf.sparse_tensor_dense_matmul(Ls[entity_name], embeddings)
 
-            sum_embed = tf.matmul(LI_side_embed, W_side)
-            dot_embed = tf.matmul(tf.multiply(L_side_embed, entity_emb), W_dot)
+            sum_embed = tf.matmul(LI_side_embed, W_side, name="%s_sum_embed" % tensor_name_prefix)
+            dot_embed = tf.matmul(tf.multiply(L_side_embed, entity_emb), W_dot, name="%s_dot_embed" % tensor_name_prefix)
 
-            agg_fold = tf.nn.leaky_relu(sum_embed + dot_embed)
+            agg_fold = tf.nn.leaky_relu(sum_embed + dot_embed, name="%s_activation" % tensor_name_prefix)
             agg_folds.append(agg_fold)
 
         agg = tf.concat(agg_folds, axis=0)
         dropout_embed = tf.nn.dropout(agg, 1 - self.t_message_dropout[0])
         return dropout_embed
 
-    def do_build_cluster_graph(self, embeddings, entity_names, W_sides, W_dots):
+    def do_build_cluster_graph(self, embeddings, entity_names, W_sides, W_dots, layer_index):
         cluster_embs = []
         for cluster_no, cluster in self.clusters.items():
             offset = cluster["offset"]
@@ -365,7 +371,7 @@ class BaseModel(metaclass=ABCMeta):
                 entity_embs[entity_name] = entity_emb
 
             # 对cluster调用NGCF
-            cluster_dropout_embed = self.build_weight_graph(cluster["L"], cluster["LI"], cluster_emb, entity_names, W_sides, W_dots, entity_embs)
+            cluster_dropout_embed = self.build_weight_graph(cluster["L"], cluster["LI"], cluster_emb, entity_names, W_sides, W_dots, entity_embs, layer_index, cluster_no=cluster_no)
             cluster_embs.append(cluster_dropout_embed)
 
         for entity_name in entity_names:
@@ -396,20 +402,21 @@ class BaseModel(metaclass=ABCMeta):
         embs = tf.concat(cluster_embs, axis=0)
         return embs
 
-    def build_cluster_graph_UPT(self, embeddings: tf.Tensor, eb_size1, eb_size2):
+    def build_cluster_graph_UPT(self, embeddings: tf.Tensor, eb_size1, eb_size2, layer_index):
+        tensor_name_prefix = "layer%d" % layer_index
         entity_names = ["u", "p", "t"]
         W_sides = {
-            "u": tf.Variable(self.initializer([eb_size1, eb_size2])),
-            "p": tf.Variable(self.initializer([eb_size1, eb_size2])),
-            "t": tf.Variable(self.initializer([eb_size1, eb_size2]))
+            "u": tf.Variable(self.initializer([eb_size1, eb_size2]), name="%s_user_W_side" % tensor_name_prefix),
+            "p": tf.Variable(self.initializer([eb_size1, eb_size2]), name="%s_playlist_W_side" % tensor_name_prefix),
+            "t": tf.Variable(self.initializer([eb_size1, eb_size2]), name="%s_track_W_side" % tensor_name_prefix)
         }
         W_dots = {
-            "u": tf.Variable(self.initializer([eb_size1, eb_size2])),
-            "p": tf.Variable(self.initializer([eb_size1, eb_size2])),
-            "t": tf.Variable(self.initializer([eb_size1, eb_size2]))
+            "u": tf.Variable(self.initializer([eb_size1, eb_size2]), name="%s_user_W_dot" % tensor_name_prefix),
+            "p": tf.Variable(self.initializer([eb_size1, eb_size2]), name="%s_playlist_W_dot" % tensor_name_prefix),
+            "t": tf.Variable(self.initializer([eb_size1, eb_size2]), name="%s_track_W_dot" % tensor_name_prefix)
         }
 
-        cluster_embs = self.do_build_cluster_graph(embeddings, entity_names, W_sides, W_dots)
+        cluster_embs = self.do_build_cluster_graph(embeddings, entity_names, W_sides, W_dots, layer_index)
         embs = tf.concat(cluster_embs, axis=0)
         return embs
 
@@ -486,13 +493,13 @@ class BaseModel(metaclass=ABCMeta):
         writer = tf.summary.FileWriter(tensorboard_dir)
         writer.add_graph(self.sess.graph)
 
-    def sp_to_tensor_fold(self, X: sp.spmatrix, dropout):
+    def sp_to_tensor_fold(self, X: sp.spmatrix, dropout, fold_name):
         tensor_fold = convert_sp_mat_to_sp_tensor(X)
 
         if dropout:
             # dropout_tensor_fold = tf.nn.dropout(tensor_fold, keep_prob=(1 - self.t_node_dropout[0]))
             n_nonzero_fold = X.count_nonzero()
-            dropout_tensor_fold = dropout_sparse(tensor_fold, 1 - self.t_node_dropout[0], n_nonzero_fold)
+            dropout_tensor_fold = dropout_sparse(tensor_fold, 1 - self.t_node_dropout[0], n_nonzero_fold, fold_name)
             return dropout_tensor_fold
         else:
             return tensor_fold
