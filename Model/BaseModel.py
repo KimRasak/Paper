@@ -164,7 +164,7 @@ class BaseModel(metaclass=ABCMeta):
         # Create session
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
-        writer = tf.summary.FileWriter("logs", self.sess.graph)
+        writer = tf.summary.FileWriter("logs", self.sess.graph)  # Write graph to logs.
         print("Writer has written logs.")
         self.saver = tf.train.Saver()
 

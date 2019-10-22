@@ -63,7 +63,7 @@ class cluster_MDR_G6(ModelUPT):
         track_bias = tf.Variable(self.initializer([self.data.n_track]), name="track_bias_ebs")
 
         embed_user = tf.nn.embedding_lookup(ebs, self.X_user, name="user_eb_lookup")
-        embed_playlist = tf.nn.embedding_lookup(ebs, self.X_playlist, name="user_eb_lookup")
+        embed_playlist = tf.nn.embedding_lookup(ebs, self.X_playlist, name="playlist_eb_lookup")
         embed_pos_item = tf.nn.embedding_lookup(ebs, self.X_pos_item, name="pos_item_eb_lookup")
         embed_neg_item = tf.nn.embedding_lookup(ebs, self.X_neg_item, name="neg_item_eb_lookup")
         bias_pos = tf.nn.embedding_lookup(track_bias, self.X_pos_item_bias, name="pos_item_bias_lookup")
