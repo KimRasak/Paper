@@ -3,8 +3,9 @@ import numpy as np
 
 import FileLayer.raw_file_layer as raw_file_layer
 import FileLayer.data_file_layer as data_file_layer
-from FileLayer import DatasetNum, DatasetName, RAW_PLAYLIST_PATH, PICK_COUNT_FILE_PATH, WHOLE_PLAYLIST_PATH, PICK_PLAYLIST_PATH, \
+from FileLayer import DatasetName, RAW_PLAYLIST_PATH, PICK_COUNT_FILE_PATH, WHOLE_PLAYLIST_PATH, PICK_PLAYLIST_PATH, \
     WHOLE_COUNT_FILE_PATH
+from Common import DatasetNum
 
 """
 提供各种对数据集的操作函数, 如下:

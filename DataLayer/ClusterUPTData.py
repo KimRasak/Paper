@@ -1,6 +1,6 @@
 from DataLayer.ClusterData import ClusterData
 from DataLayer.NormalData import NormalData
-from FileLayer import DatasetNum
+from Common import DatasetNum
 
 
 class ClusterUPTData(ClusterData):

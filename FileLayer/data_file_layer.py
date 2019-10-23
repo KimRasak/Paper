@@ -1,5 +1,6 @@
-from FileLayer import DatasetNum, TRAIN_FILE_PATH, PICK_TRAIN_FILE_PATH, TEST_FILE_PATH, PICK_TEST_FILE_PATH, \
+from FileLayer import TRAIN_FILE_PATH, PICK_TRAIN_FILE_PATH, TEST_FILE_PATH, PICK_TEST_FILE_PATH, \
     COUNT_FILE_NAME, PICK_COUNT_FILE_PATH
+from Common import DatasetNum
 
 """
 Provide read/write API of playlist files and count files.

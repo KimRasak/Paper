@@ -7,7 +7,7 @@ import numpy as np
 
 
 import FileLayer.data_file_layer as data_file_layer
-from FileLayer import DatasetNum
+from Common import DatasetNum
 
 
 class Data(metaclass=ABCMeta):
@@ -45,8 +45,8 @@ class Data(metaclass=ABCMeta):
         self.sum = self.__get_data_sum(self.data_set_num)
 
         # Read train data for training.
-        train_data = data_file_layer.read_playlist_data(train_file_path)
-        self.__init_relation_data(train_data)
+        self.train_data = data_file_layer.read_playlist_data(train_file_path)
+        self.__init_relation_data(self.train_data)
 
         # Generate test list data for testing.
         test_data = data_file_layer.read_playlist_data(test_file_path)

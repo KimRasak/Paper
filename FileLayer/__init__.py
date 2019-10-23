@@ -3,11 +3,6 @@ This layer defines how to read/write the raw-data/data-set files.
 Most functions in Data Layer will depend on this layer.
 """
 import os
-from collections import namedtuple
-
-
-# Define namedtuple for numbers of entities in a data set.
-DatasetNum = namedtuple("DatasetNum", ["user", "playlist", "track", "interaction"])
 
 
 # Define names of data sets.
