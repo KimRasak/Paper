@@ -28,7 +28,7 @@ class ClusterData(Data, ABC):
     def __init__(self, data_set_name, use_picked_data=True,
                  batch_size=256, epoch_times=4, is_test_mode=False,
                  num_cluster=50):
-        super().__init__(data_set_name, use_picked_data=True, batch_size=256, epoch_times=4, is_test_mode=False)
+        super().__init__(data_set_name, use_picked_data=use_picked_data, batch_size=batch_size, epoch_times=epoch_times, is_test_mode=is_test_mode)
         self.num_cluster = num_cluster
 
     def __init_relation_data(self, train_data: dict):
