@@ -82,3 +82,10 @@ PICK_TEST_FILE_PATH = {
     DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PICK_TEST_FILE_NAME),
     DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_TEST_FILE_NAME)
 }
+
+# Define paths of cluster files.
+CLUSTER_DIR_NAME = "cluster"
+CLUSTER_FILE_DIR_PATH = {
+    DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, CLUSTER_DIR_NAME),
+    DatasetName.AOTM: os.path.join(AOTM_PATH, CLUSTER_DIR_NAME)
+}

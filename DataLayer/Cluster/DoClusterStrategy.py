@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from time import time
 
+import numpy as np
 import metis
 import networkx as nx
 
 from Common import DatasetNum
 
 
-class ClusterStrategyI(ABC):
+class DoClusterStrategyI(ABC):
     @abstractmethod
     def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
         pass
@@ -46,26 +47,42 @@ class ClusterStrategyI(ABC):
         for part in parts:
             assert 0 <= part < num_cluster
 
-        return parts
+        return np.array(parts)
 
 
-class UTClusterStrategy(ClusterStrategyI):
-    def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
-        pass
-
+class DoUTClusterStrategy(DoClusterStrategyI):
     def __get_sum(self, data_set_num: DatasetNum):
         return data_set_num.user + data_set_num.track
 
-
-class PTClusterStrategy(ClusterStrategyI):
     def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
         pass
 
+
+class DoPTClusterStrategy(DoClusterStrategyI):
     def __get_sum(self, data_set_num: DatasetNum):
         return data_set_num.playlist + data_set_num.track
 
+    def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
+        pairs = []
 
-class UPTClusterStrategy(ClusterStrategyI):
+        # Define offsets of entities.
+        track_offset = data_set_num.playlist
+
+        for uid, user in data.items():
+            for pid, tids in user.items():
+                for tid in tids:
+                    global_pid, global_tid = pid, tid + track_offset
+
+                    pt_pair = (global_pid, global_tid)
+
+                    pairs.append(pt_pair)
+        return pairs
+
+
+class DoUPTClusterStrategy(DoClusterStrategyI):
+    def __get_sum(self, data_set_num: DatasetNum):
+        return data_set_num.user + data_set_num.playlist + data_set_num.track
+
     def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
         pairs = []
 
@@ -87,5 +104,3 @@ class UPTClusterStrategy(ClusterStrategyI):
                     pairs.append(ut_pair)
         return pairs
 
-    def __get_sum(self, data_set_num: DatasetNum):
-        return data_set_num.user + data_set_num.playlist + data_set_num.track

@@ -141,7 +141,7 @@ def gen_whole_dataset(dataset_name):
 
     # 1. Get function for reading file and read the playlist data.
     read_file_function = ReadFileFunction[dataset_name]
-    filepath = RAW_PLAYLIST_PATH[DatasetName.THIRTY_MUSIC]
+    filepath = raw_file_layer.get_raw_file_path(DatasetName.THIRTY_MUSIC)
     playlist_data = read_file_function(filepath)
 
     # 2. Filter out some playlists that don't meet the need.

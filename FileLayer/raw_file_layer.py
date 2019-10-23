@@ -2,11 +2,17 @@ import json
 import re
 import time
 
+from FileLayer import RAW_PLAYLIST_PATH
 
 """
 Provide read API of raw data set.
 The available raw data sets are "30music" and "aotm".
 """
+
+
+def get_raw_file_path(data_set_name):
+    return RAW_PLAYLIST_PATH[data_set_name]
+
 
 def read_raw_30music_events(filepath="../raw-data/30music/relations/events.idomaar"):
     # Read '30music' raw events data and return structured data.

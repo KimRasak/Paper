@@ -1,6 +1,11 @@
 """
 Provide read/write API of cluster files.
 """
+from FileLayer import CLUSTER_FILE_DIR_PATH
+
+
+def get_cluster_dir_path(data_set_name):
+    return CLUSTER_FILE_DIR_PATH[data_set_name]
 
 
 def read_cluster_file(cluster_file_path):
