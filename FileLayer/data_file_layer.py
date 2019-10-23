@@ -1,6 +1,11 @@
 from FileLayer import DatasetNum, TRAIN_FILE_PATH, PICK_TRAIN_FILE_PATH, TEST_FILE_PATH, PICK_TEST_FILE_PATH, \
     COUNT_FILE_NAME, PICK_COUNT_FILE_PATH
 
+"""
+Provide read/write API of playlist files and count files.
+Playlist files include "whole playlist file"/"train file"/"test file"
+"""
+
 
 def get_train_file_path(use_picked_data, data_set_name):
     if not use_picked_data:

@@ -3,6 +3,11 @@ import re
 import time
 
 
+"""
+Provide read API of raw data set.
+The available raw data sets are "30music" and "aotm".
+"""
+
 def read_raw_30music_events(filepath="../raw-data/30music/relations/events.idomaar"):
     # Read '30music' raw events data and return structured data.
     # Usually the events data is not used, so this function is not used.

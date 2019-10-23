@@ -1,6 +1,27 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from DataLayer.Data import Data
+
+
+class ClusterStrategy(ABC):
+    @abstractmethod
+    def cluster(self, data):
+        pass
+
+
+class UTClusterStrategy(ClusterStrategy):
+    def cluster(self, data):
+        pass
+
+
+class PTClusterStrategy(ClusterStrategy):
+    def cluster(self, data):
+        pass
+
+
+class UPTClusterStrategy(ClusterStrategy):
+    def cluster(self, data):
+        pass
 
 
 class ClusterData(Data, ABC):
