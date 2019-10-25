@@ -9,10 +9,10 @@ from DataLayer.Cluster.DoClusterStrategy import DoClusterStrategyI, DoPTClusterS
 
 
 class ClusterStrategyI(ABC):
-    do_cluster_strategy: DoClusterStrategyI
+    __do_cluster_strategy: DoClusterStrategyI
 
-    def __init__(self, data_set_name, data, num_cluster):
-        self.cluster_dir_path = cluster_file_layer.get_cluster_dir_path(data_set_name)
+    def __init__(self, data_set_name):
+        self.__cluster_dir_path = cluster_file_layer.get_cluster_dir_path(data_set_name)
 
     def get_cluster(self, data_set_num: DatasetNum, data, num_cluster):
         """
@@ -36,12 +36,13 @@ class ClusterStrategyI(ABC):
         cluster_file_layer.write_cluster_file(cluster_file_path, parts)
 
     def __read_cluster_file(self, cluster_file_path):
-        return cluster_file_layer.read_cluster_file(cluster_file_path)
+        return np.array(cluster_file_layer.read_cluster_file(cluster_file_path))
 
     @abstractmethod
     def __cluster(self, data_set_num: DatasetNum, data, num_cluster):
         """
         Generate clusters of the ids and return the parts.
+        :return numpy.ndarray
         """
         pass
 
@@ -50,7 +51,7 @@ class ClusterStrategyI(ABC):
         pass
 
     def __get_cluster_file_path(self, num_cluster):
-        cluster_dir_path = self.cluster_dir_path
+        cluster_dir_path = self.__cluster_dir_path
         cluster_file_name = self.__get_cluster_file_name(num_cluster)
 
         return os.path.join(cluster_dir_path, cluster_file_name)
@@ -61,12 +62,10 @@ class ClusterStrategyI(ABC):
 
 
 class PTClusterStrategy(ClusterStrategyI):
-    def __init__(self, data_set_name):
-        self.do_cluster_strategy = DoPTClusterStrategy()
-        super().__init__(data_set_name)
+    __do_cluster_strategy = DoPTClusterStrategy()
 
     def __cluster(self, data_set_num, data, num_cluster):
-        parts = self.do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
+        return self.__do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
 
     def __get_cluster_type_name(self):
         return "clusterPT"
@@ -130,36 +129,36 @@ class UPTClusterStrategyI(ClusterStrategyI, ABC):
 
 
 class UPTFromPTClusterStrategy(UPTClusterStrategyI):
-    pick_cluster_strategy: UPTClusterStrategyI.PickClusterStrategy
+    __pick_cluster_strategy: UPTClusterStrategyI.PickClusterStrategy
 
     def __init__(self, data_set_name, pick_cluster_strategy):
         super().__init__(data_set_name)
-        self.do_cluster_strategy = DoPTClusterStrategy()
-        self.pick_cluster_strategy = pick_cluster_strategy
+        self.__do_cluster_strategy = DoPTClusterStrategy()
+        self.__pick_cluster_strategy = pick_cluster_strategy
 
     def __cluster(self, data_set_num, data, num_cluster):
-        sum = data_set_num.user + data_set_num.playlist + data_set_num.track
-        parts = np.array((sum, ), dtype=np.int)
+        data_set_sum = data_set_num.user + data_set_num.playlist + data_set_num.track
+        parts = np.array((data_set_sum, ), dtype=np.int)
 
         # Generate the clusters from playlist and track ids.
-        pt_parts = self.do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
+        pt_parts = self.__do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
 
         for uid, user in data.items():
-            picked_cluster = self.pick_cluster_strategy.pick_cluster(user, pt_parts)
+            picked_cluster = self.__pick_cluster_strategy.pick_cluster(user, pt_parts)
             parts[uid] = picked_cluster
 
-        for id in pt_parts:
+        for playlist_or_track_id in pt_parts:
             offset = data_set_num.user
-            parts[id + offset] = pt_parts[id]
+            parts[playlist_or_track_id + offset] = pt_parts[playlist_or_track_id]
 
-        # Put uids into parts
-        return pt_parts
+        # Put user ids into parts
+        return parts
 
     def __get_cluster_type_name(self):
         return "clusterUPT"
 
     def __get_cluster_strategy_name(self):
-        return self.pick_cluster_strategy.get_name()
+        return self.__pick_cluster_strategy.get_name()
 
     def __get_cluster_file_name(self, num_cluster):
         return "%s_%s_%d" % (self.__get_cluster_type_name(), self.__get_cluster_strategy_name(), num_cluster)
@@ -168,10 +167,10 @@ class UPTFromPTClusterStrategy(UPTClusterStrategyI):
 class UPTFromUPTClusterStrategy(UPTClusterStrategyI):
     def __init__(self, data_set_name):
         super().__init__(data_set_name)
-        self.do_cluster_strategy = DoUPTClusterStrategy()
+        self.__do_cluster_strategy = DoUPTClusterStrategy()
 
     def __cluster(self, data_set_num, data, num_cluster):
-        parts = self.do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
+        parts = self.__do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
         return parts
 
     def __get_cluster_type_name(self):

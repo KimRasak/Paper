@@ -22,6 +22,11 @@ class Data(metaclass=ABCMeta):
     PICK_TEST_FILE_NAME = PREFIX_PICK_FILE + "_" + TEST_FILE_NAME
     PICK_EVENTS_FILE_NAME = PREFIX_PICK_FILE + "_" + EVENTS_FILE_NAME
 
+    # Entity names
+    ENTITY_USER = "user"
+    ENTITY_PLAYLIST = "playlist"
+    ENTITY_TRACK = "track"
+
     def __init__(self, data_set_name, use_picked_data=True,
                  batch_size=256, epoch_times=4, is_test_mode=False):
         t_all_start = time()
@@ -55,7 +60,6 @@ class Data(metaclass=ABCMeta):
         # Print total time used.
         t_all_end = time()
         print("Reading data used %d seconds in all." % (t_all_end - t_all_start))
-
 
     @staticmethod
     def __read_count_file(count_file_path):
