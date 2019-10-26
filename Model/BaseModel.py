@@ -498,7 +498,6 @@ class BaseModel(metaclass=ABCMeta):
         else:
             return tensor_fold
 
-
     def sparse_matrix_to_tensor_folds(self, X: sp.spmatrix, drop_out):
         tensor_folds = []
 

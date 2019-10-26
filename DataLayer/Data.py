@@ -54,8 +54,7 @@ class Data(metaclass=ABCMeta):
         self.__init_relation_data(self.train_data)
 
         # Generate test list data for testing.
-        test_data = data_file_layer.read_playlist_data(test_file_path)
-        self.test_list = self.__gen_test_list(test_data)
+        self.test_data = data_file_layer.read_playlist_data(test_file_path)
 
         # Print total time used.
         t_all_end = time()
@@ -93,6 +92,7 @@ class Data(metaclass=ABCMeta):
 
     @staticmethod
     def __gen_test_list(test_data: dict):
+        """Not used"""
         t_test_start = time()
         test_list = []
         # Iterate each u-p-t pair and add them to the test list.
