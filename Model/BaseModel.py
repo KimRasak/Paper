@@ -174,8 +174,6 @@ class BaseModel(metaclass=ABCMeta):
         eb_size = self.embedding_size
 
         model_name = "%s_%s_eb%d_lr%de-%d_rr%de-%d" % (self.class_name, self.data.dataset_name, eb_size, base_lr, index_lr, base_rr, index_rr)
-        # file_path = "./%s_eb%d_lr%de-%d_rr%de-%d.txt" % (self.class_name, eb_size, base_lr, index_lr, base_rr, index_rr)
-        # self.output_file = open(file_path, "a+")
         return model_name
 
     def restore_model(self):

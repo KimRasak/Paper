@@ -8,9 +8,6 @@ from Common import DatasetNum
 
 
 class ClusterUPTData(ClusterData):
-    def __init__(self, data_set_name, cluster_strategy):
-        super().__init__(data_set_name, cluster_strategy)
-
     def __init_relation_dict(self, train_data):
         self.up = dict()
         self.pt = dict()
@@ -38,8 +35,7 @@ class ClusterUPTData(ClusterData):
         return data_set_num.user + data_set_num.playlist + data_set_num.track
 
     def __get_cluster_sizes(self, parts, data_set_num: DatasetNum):
-        cluster_num = np.max(parts)
-        cluster_sizes = [{"u": 0, "p": 0, "t": 0, "total": 0} for _ in range(cluster_num)]
+        cluster_sizes = [{"u": 0, "p": 0, "t": 0, "total": 0} for _ in range(self.cluster_num)]
 
         for global_id in range(self.sum):
             cluster_number = parts[global_id]
@@ -62,8 +58,7 @@ class ClusterUPTData(ClusterData):
         :return:
         """
         # Init clusters
-        cluster_num = np.max(parts)
-        cluster_total_sizes = np.zeros((cluster_num, ), dtype=int)
+        cluster_total_sizes = np.zeros((self.cluster_num, ), dtype=int)
         global_id_cluster_id_map = np.zeros((len(parts), ), dtype=int)
 
         for global_id, cluster_number in enumerate(parts):
@@ -85,8 +80,7 @@ class ClusterUPTData(ClusterData):
             return data_set_num.user + data_set_num.playlist + entity_id
 
     def __gen_train_tuples(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
-        cluster_num = np.max(parts)
-        cluster_pos_train_tuples = [dict() for i in range(cluster_num)]
+        cluster_pos_train_tuples = [dict() for i in range(self.cluster_num)]
 
         for pos_train_tuple in cluster_pos_train_tuples:
             pos_train_tuple.update({
@@ -135,8 +129,7 @@ class ClusterUPTData(ClusterData):
         return cluster_pos_train_tuples
 
     def __gen_cluster_track_ids(self, parts, data_set_num: DatasetNum, global_id_cluster_id_map):
-        cluster_num = np.max(parts)
-        cluster_track_ids = [{"global_id": np.array([]), "cluster_id": np.array([])} for _ in range(cluster_num)]
+        cluster_track_ids = [{"global_id": np.array([]), "cluster_id": np.array([])} for _ in range(self.cluster_num)]
 
         tid_offset = data_set_num.user + data_set_num.playlist
         for entity_tid in range(data_set_num.track):
@@ -180,12 +173,11 @@ class ClusterUPTData(ClusterData):
         return test_tuples
 
     def __get_cluster_connections(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
-        cluster_num = np.max(parts)
         cluster_connections = [{
             "up": [],
             "pt": [],
             "ut": []
-        } for _ in range(cluster_num)]
+        } for _ in range(self.cluster_num)]
         for entity_uid, user in train_data.items():
             for entity_pid, entity_tids in user.items():
                 for entity_tid in entity_tids:
@@ -215,8 +207,7 @@ class ClusterUPTData(ClusterData):
         return cluster_connections
 
     def __gen_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
-        cluster_num = len(cluster_sizes)
-        clusters_laplacian_matrices = [dict() for _ in range(cluster_num)]
+        clusters_laplacian_matrices = [dict() for _ in range(self.cluster_num)]
 
         # Init clusters_laplacian_matrices
         for cluster_number, _ in enumerate(clusters_laplacian_matrices):

@@ -8,17 +8,17 @@ from DataLayer.Data import Data
 
 class ClusterData(Data, ABC):
     def __init__(self, data_set_name, cluster_strategy, use_picked_data=True,
-                 batch_size=256, epoch_times=4, is_test_mode=False,
-                 num_cluster=50, ut_alpha=1):
+                 batch_size=256, epoch_times=4, is_debug_mode=False,
+                 cluster_num=50, ut_alpha=1):
         super().__init__(data_set_name, use_picked_data=use_picked_data, batch_size=batch_size, epoch_times=epoch_times,
-                         is_test_mode=is_test_mode)
-        self.num_cluster = num_cluster
+                         is_debug_mode=is_debug_mode)
+        self.cluster_num = cluster_num
 
         # Get cluster of the nodes.
         data_set_num = self.data_set_num
         train_data = self.train_data
         self.cluster_strategy: ClusterStrategyI = cluster_strategy
-        self.parts: np.ndarray = self.cluster_strategy.get_cluster(data_set_num, train_data, num_cluster)
+        self.parts: np.ndarray = self.cluster_strategy.get_cluster(data_set_num, train_data, cluster_num)
 
         cluster_sizes = self.__get_cluster_sizes(self.parts, data_set_num)
 
