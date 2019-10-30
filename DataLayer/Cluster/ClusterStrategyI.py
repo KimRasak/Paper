@@ -75,11 +75,11 @@ class PTClusterStrategy(ClusterStrategyI):
 
 
 class UPTClusterStrategyI(ClusterStrategyI, ABC):
-    class PickClusterStrategy(ABC):
+    class PickClusterStrategyI(ABC):
         @abstractmethod
         def pick_cluster(self, user: dict, pt_parts: np.ndarray):
             """
-            Pick a cluster number for a user id.
+            Pick a cluster number for a user id that belongs to no cluster.
             :return:
             """
             pass
@@ -88,7 +88,7 @@ class UPTClusterStrategyI(ClusterStrategyI, ABC):
         def get_name(self):
             pass
 
-    class MostNumPickClusterStrategy(PickClusterStrategy):
+    class MostNumPickClusterStrategy(PickClusterStrategyI):
         def pick_cluster(self, user: dict, pt_parts):
             """
             The playlists of the user belong to different clusters,
@@ -112,7 +112,7 @@ class UPTClusterStrategyI(ClusterStrategyI, ABC):
         def get_name(self):
             return "MostNum"
 
-    class FirstChoicePickClusterStrategy(PickClusterStrategy):
+    class FirstChoicePickClusterStrategy(PickClusterStrategyI):
         def pick_cluster(self, user: dict, pt_parts):
             """
             Return the cluster number of the first playlist.
@@ -129,7 +129,7 @@ class UPTClusterStrategyI(ClusterStrategyI, ABC):
 
 
 class UPTFromPTClusterStrategy(UPTClusterStrategyI):
-    __pick_cluster_strategy: UPTClusterStrategyI.PickClusterStrategy
+    __pick_cluster_strategy: UPTClusterStrategyI.PickClusterStrategyI
 
     def __init__(self, data_set_name, pick_cluster_strategy):
         super().__init__(data_set_name)

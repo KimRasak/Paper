@@ -12,6 +12,7 @@ def get_output(delta, B):
     print("square:", square, len(square.shape) - 1)
     return tf.reduce_sum(square, axis=len(square.shape) - 1)
 
+
 def MDR_layer(embed_user, embed_playlist, embed_track, B1, B2):
     delta_ut = embed_user - embed_track
     delta_pt = embed_playlist - embed_track

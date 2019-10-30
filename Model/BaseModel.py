@@ -130,7 +130,6 @@ class BaseModel(metaclass=ABCMeta):
                 cluster["LI"][entity_name] = self.sp_to_tensor_fold(LI_entity,
                                                                    self.node_dropout_flag)
 
-
     def build_model(self):
         laplacian_mode = self.data.laplacian_mode
         if "cluster" not in laplacian_mode:

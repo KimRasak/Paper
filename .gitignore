@@ -17,3 +17,6 @@ train*.py
 *rr*.txt
 
 logs
+
+# demo
+*demo.py

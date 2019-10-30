@@ -84,6 +84,7 @@ class ClusterUPTData(ClusterData):
 
         for pos_train_tuple in cluster_pos_train_tuples:
             pos_train_tuple.update({
+                "length": 0,
                 # Entity ids of u-p-t tuples.
                 "user_entity_id": np.array([]),
                 "playlist_entity_id": np.array([]),
@@ -120,6 +121,7 @@ class ClusterUPTData(ClusterData):
                     cluster_uid, cluster_pid, cluster_tid = \
                         global_id_cluster_id_map[global_uid], global_id_cluster_id_map[global_pid], global_id_cluster_id_map[global_tid]
 
+                    pos_train_tuple["length"] += 1
                     np.append(pos_train_tuple["user_entity_id"], entity_uid)
                     np.append(pos_train_tuple["playlist_entity_id"], entity_pid)
                     np.append(pos_train_tuple["pos_track_entity_id"], entity_tid)
@@ -129,20 +131,23 @@ class ClusterUPTData(ClusterData):
         return cluster_pos_train_tuples
 
     def __gen_cluster_track_ids(self, parts, data_set_num: DatasetNum, global_id_cluster_id_map):
-        cluster_track_ids = [{"global_id": np.array([]), "cluster_id": np.array([])} for _ in range(self.cluster_num)]
+        cluster_track_ids = [{"num": 0, "entity_id": np.array([]), "cluster_id": np.array([])} for _ in range(self.cluster_num)]
 
         tid_offset = data_set_num.user + data_set_num.playlist
         for entity_tid in range(data_set_num.track):
             global_tid = entity_tid + tid_offset
             cluster_tid = global_id_cluster_id_map[global_tid]
             cluster_number = parts[global_tid]
-            np.append(cluster_track_ids[cluster_number]["global_id"], global_tid)
+
+            cluster_track_ids[cluster_number]["num"] += 1
+            np.append(cluster_track_ids[cluster_number]["entity_id"], entity_tid)
             np.append(cluster_track_ids[cluster_number]["cluster_id"], cluster_tid)
 
         return cluster_track_ids
 
     def __gen_test_pos_tuples(self, test_data, data_set_num: DatasetNum, global_id_cluster_id_map, parts):
         test_tuples = {
+            "length": 0,
             # Entity ids.
             "user_entity_id": np.array([]),
             "playlist_entity_id": np.array([]),
@@ -162,6 +167,7 @@ class ClusterUPTData(ClusterData):
                         self.__map_entity_id_to_global_id(entity_pid, data_set_num, self.ENTITY_PLAYLIST), \
                         self.__map_entity_id_to_global_id(entity_tid, data_set_num, self.ENTITY_TRACK)
 
+                    test_tuples["length"] += 1
                     np.append(test_tuples["user_entity_id"], entity_uid)
                     np.append(test_tuples["playlist_entity_id"], entity_pid)
                     np.append(test_tuples["pos_track_entity_id"], entity_tid)
@@ -238,12 +244,6 @@ class ClusterUPTData(ClusterData):
 
             user_size = cluster_size["u"]
             playlist_size = cluster_size["p"]
-
-            entity_bound_index = {
-                "u": (0, user_size),
-                "p": (user_size, user_size + playlist_size),
-                "t": (user_size + playlist_size, cluster_total_size)
-            }
 
             clusters_laplacian_matrices[cluster_number] = {
                 "u": {

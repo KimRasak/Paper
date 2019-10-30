@@ -20,7 +20,7 @@ class ClusterData(Data, ABC):
         self.cluster_strategy: ClusterStrategyI = cluster_strategy
         self.parts: np.ndarray = self.cluster_strategy.get_cluster(data_set_num, train_data, cluster_num)
 
-        cluster_sizes = self.__get_cluster_sizes(self.parts, data_set_num)
+        self.cluster_sizes = self.__get_cluster_sizes(self.parts, data_set_num)
 
         # Extract training tuples from the cluster parts.
         self.global_id_cluster_id_map = self.__gen_global_id_cluster_id_map(self.parts)
@@ -38,8 +38,10 @@ class ClusterData(Data, ABC):
                                                                   self.parts, self.global_id_cluster_id_map)
 
         # Generate laplacian matrices.
-        self.laplacian_matrices = self.__gen_laplacian_matrices(self.cluster_pos_train_tuples, cluster_sizes,
-                                                                self.cluster_connections, ut_alpha=ut_alpha)
+        self.clusters_laplacian_matrices: dict = self.__gen_laplacian_matrices(self.cluster_pos_train_tuples,
+                                                                               self.cluster_sizes,
+                                                                               self.cluster_connections,
+                                                                               ut_alpha=ut_alpha)
 
     def __init_relation_data(self, train_data: dict):
         """
@@ -103,3 +105,23 @@ class ClusterData(Data, ABC):
     @abstractmethod
     def __gen_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
         pass
+
+    def pick_negative_tids(self, train_cluster_number, picked_num):
+        cluster_tids = self.cluster_track_ids[train_cluster_number]
+        tid_num = cluster_tids["num"]
+
+        # Pick another cluster.
+        picked_cluster = np.random.randint(0, self.cluster_num)
+        while train_cluster_number == picked_cluster:
+            picked_cluster = np.random.randint(0, self.cluster_num)
+
+        # Pick indices of tids.
+        picked_indices = set()
+        while len(picked_indices) < picked_num:
+            picked_index = np.random.randint(0, tid_num)
+            picked_indices.add(picked_index)
+
+        return {
+            "entity_id": cluster_tids["entity_id"][picked_indices],
+            "cluster_id": cluster_tids["cluster_id"][picked_indices]
+        }
