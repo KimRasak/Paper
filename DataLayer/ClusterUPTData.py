@@ -34,6 +34,9 @@ class ClusterUPTData(ClusterData):
     def __get_data_sum(self, data_set_num: DatasetNum):
         return data_set_num.user + data_set_num.playlist + data_set_num.track
 
+    def get_entity_names(self):
+        return ["u", "p", "t"]
+
     def __get_cluster_sizes(self, parts, data_set_num: DatasetNum):
         cluster_sizes = [{"u": 0, "p": 0, "t": 0, "total": 0} for _ in range(self.cluster_num)]
 
@@ -49,6 +52,13 @@ class ClusterUPTData(ClusterData):
                 cluster_size["t"] += 1
 
         return cluster_sizes
+
+    def __get_cluster_bounds(self, cluster_sizes):
+        return [{
+            "u": (0, size["u"]),  # Bound start, bound end.
+            "p": (size["u"], size["u"] + size["p"]),
+            "t": (size["u"] + size["p"], size["u"] + size["p"] + size["t"])
+        } for size in self.cluster_sizes]
 
     def __gen_global_id_cluster_id_map(self, parts):
         """
@@ -242,21 +252,11 @@ class ClusterUPTData(ClusterData):
             # Init LI matrix.
             LI_matrix = L_matrix + sp.eye(L_matrix.shape[0])
 
-            user_size = cluster_size["u"]
-            playlist_size = cluster_size["p"]
-
-            clusters_laplacian_matrices[cluster_number] = {
-                "u": {
-                    "L": L_matrix[:user_size, :],
-                    "LI": LI_matrix[:user_size, :]
-                },
-                "p": {
-                    "L": L_matrix[user_size: user_size+playlist_size, :],
-                    "LI": LI_matrix[user_size: user_size+playlist_size, :]
-                },
-                "t": {
-                    "L": L_matrix[user_size+playlist_size:, :],
-                    "LI": LI_matrix[user_size+playlist_size:, :]
+            clusters_laplacian_matrices[cluster_number] = dict()
+            for entity_name, (start, end) in self.cluster_bounds[cluster_number].items():
+                clusters_laplacian_matrices[cluster_number][entity_name] = {
+                    "L": L_matrix[start: end, :],
+                    "LI": LI_matrix[start: end, :]
                 }
-            }
+
         return clusters_laplacian_matrices

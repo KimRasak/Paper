@@ -21,6 +21,7 @@ class ClusterData(Data, ABC):
         self.parts: np.ndarray = self.cluster_strategy.get_cluster(data_set_num, train_data, cluster_num)
 
         self.cluster_sizes = self.__get_cluster_sizes(self.parts, data_set_num)
+        self.cluster_bounds = self.__get_cluster_bounds(self.cluster_sizes)
 
         # Extract training tuples from the cluster parts.
         self.global_id_cluster_id_map = self.__gen_global_id_cluster_id_map(self.parts)
@@ -51,11 +52,19 @@ class ClusterData(Data, ABC):
         self.__init_relation_dict(train_data)
 
     @abstractmethod
+    def get_entity_names(self):
+        pass
+
+    @abstractmethod
     def __get_cluster_sizes(self, parts, data_set_num: DatasetNum):
         """
         Get sizes of each entity in the cluster and the cluster's size.
         :return A list of dict. Each dict stores the size of each entity and the total size of the cluster.
         """
+        pass
+
+    @abstractmethod
+    def __get_cluster_bounds(self, cluster_sizes):
         pass
 
     @abstractmethod

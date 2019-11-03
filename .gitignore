@@ -6,6 +6,8 @@
 
 # 模型
 cpkt/
+ckpt/
+tf_ckpts/
 
 # 编译文件
 *.pyc

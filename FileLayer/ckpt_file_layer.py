@@ -5,28 +5,31 @@ import tensorflow as tf
 
 
 class SaveManager:
-    CHECKPOINT_DIR = "ckpt"
+    TRAIN_STEP_VARIABLE_NAME = "train_step"
+    CHECKPOINT_BASE_DIR = "ckpt"
 
-    def __init__(self, model_name):
-        self.model_dir = os.path.join(SaveManager.CHECKPOINT_DIR, model_name)
-        self.saver = tf.train.Saver()
+    def __init__(self, model_name, optimizer, nets):
+        self.__model_dir = os.path.join(SaveManager.CHECKPOINT_BASE_DIR, model_name)
+        self.__train_step = tf.Variable(0, name=SaveManager.TRAIN_STEP_VARIABLE_NAME)
+        self.__ckpt = tf.train.Checkpoint(train_step=self.__train_step, optimizer=optimizer)
+        self.__ckpt.nets = nets
+        self.__manager = tf.train.CheckpointManager(self.__ckpt, self.__model_dir, max_to_keep=3)
 
-    def restore_model(self, sess, model_path=None):
-        if model_path:
-            # Restore the model on the given path.
-            self.saver.restore(sess, model_path)
-            return
-
-        ckpt = tf.train.get_checkpoint_state(self.model_dir)
-        if ckpt and ckpt.model_checkpoint_path:
-            # Restore the checkpoint model.
-            self.saver.restore(sess, ckpt.model_checkpoint_path)
-            print("Model checkpoint found on dir %r. Using model." % model_path)
+    def restore_model(self):
+        self.__manager.restore()
+        if self.__manager.latest_checkpoint:
+            print("Restored from {}".format(self.__manager.latest_checkpoint))
         else:
-            print('No model on dir %r. Not using model.' % model_path)
+            print("No checkpoint on {}, Initializing from scratch.".format(self.__model_dir))
 
-    def save_model(self, sess, epoch):
-        if not os.path.exists(self.model_dir):
-            os.makedirs(self.model_dir)
-        model_path = os.path.join(self.model_dir, "model%d.cpkt" % epoch)
-        self.saver.save(sess, model_path)
+    def save_model(self):
+        if not os.path.exists(self.__model_dir):
+            os.makedirs(self.__model_dir)
+        print("Saving model of epoch {}".format(self.__train_step.numpy()))
+        self.__manager.save()
+
+        # Update variable
+        self.__train_step.assign_add(1)
+
+    def get_train_step(self):
+        return self.__train_step.numpy()
