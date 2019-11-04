@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from DataLayer.ClusterData import ClusterData
 from ModelLayertf2.BaseModel import BaseModel
+from ModelLayertf2.Strategy.NegativeTrainSampleStrategy import OtherClusterStrategyTrain
 
 
 class GNN(layers.Layer):
@@ -120,6 +121,7 @@ class FullGNN(layers.Layer):
         super(FullGNN, self).__init__()
         self.layer_num = layer_num
         self.multi_GNN_layers = []
+        self.Ws = []
         for layer_no in range(layer_num):
             GNN_layers = []
 
@@ -134,6 +136,9 @@ class FullGNN(layers.Layer):
                                          name="W_dot_layer_{}_{}".format(layer_no, entity_name))
                 for entity_name in entity_names
             }
+
+            self.Ws.extend(list(W_sides.values()))
+            self.Ws.extend(list(W_dots.values()))
 
             for cluster_no in range(cluster_num):
                 LIs = cluster_laplacian_matrices[cluster_no]["L"]
@@ -158,6 +163,15 @@ class FullGNN(layers.Layer):
         agg = tf.concat(layers_ebs, axis=0)
         return agg
 
+    def get_reg_loss(self):
+        reg_loss = 0
+        for W in self.Ws:
+            reg_loss += tf.nn.l2_loss(W)
+        return reg_loss
+
+    def get_trainable_variables(self):
+        return self.Ws
+
 
 class ClusterModel(BaseModel, ABC):
     def __init__(self, data: ClusterData, epoch_num,
@@ -171,20 +185,8 @@ class ClusterModel(BaseModel, ABC):
         self.cluster_dropout_flag = cluster_dropout_flag
         self.cluster_dropout_ratio = node_dropout_ratio
         self.gnn_layer_num = gnn_layer_num
-
-    def __build_model(self):
-        self.cluster_initial_ebs = [tf.Variable(self.initializer([size["total"], self.embedding_size]),
-                                                name="cluster_{}_ebs".format(cluster_no))
-                                    for cluster_no, size in self.data.cluster_sizes.items()]
-
-        self.full_GNN_layer = FullGNN(self.initializer, self.embedding_size,
-                                      self.data.clusters_laplacian_matrices, self.data.cluster_bounds,
-                                      self.data.get_entity_names(),
-                                      self.cluster_dropout_flag, self.cluster_dropout_ratio,
-                                      self.data.cluster_num, self.gnn_layer_num)
-
-        self.MDR_layer = MDR(self.initializer, self.embedding_size, self.data.data_set_num.track)
+        self.neg_sample_strategy = OtherClusterStrategyTrain(self.data.cluster_track_ids)
 
     @abstractmethod
-    def train_cluster(self):
+    def __train_cluster(self, cluster_no):
         pass

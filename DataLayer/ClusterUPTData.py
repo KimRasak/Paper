@@ -260,3 +260,23 @@ class ClusterUPTData(ClusterData):
                 }
 
         return clusters_laplacian_matrices
+
+    def sample_negative_test_track_ids(self, uid, pid):
+        # Sample 100 track id, and ensure each tid doesn't appear in train data and test data.
+        track_num = self.data_set_num.track
+        negative_test_tids = {
+            "num": 0,
+            "entity_id": np.array([]),
+            "global_id": np.array([])
+        }
+        while negative_test_tids["num"] < 100:
+            picked_tid = np.random.randint(0, track_num)
+            if (not picked_tid in self.train_data[uid][pid]) \
+                and (not picked_tid in self.test_data[uid][pid]):
+                global_tid = self.__map_entity_id_to_global_id(picked_tid, self.data_set_num, self.ENTITY_TRACK)
+
+                negative_test_tids["num"] += 1
+                np.append(negative_test_tids["entity_id"], picked_tid)
+                np.append(negative_test_tids["global_id"], global_tid)
+
+        return negative_test_tids

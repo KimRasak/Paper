@@ -150,7 +150,7 @@ class ClusterModel(Model):
 
     def __get_negative_samples(self, pos_train_tuples, train_cluster_number):
         pick_num = pos_train_tuples["length"]
-        neg_tids = self.data.pick_negative_tids(train_cluster_number, pick_num)
+        neg_tids = self.data.pick_negative_train_tids(train_cluster_number, pick_num)
         return {
             "neg_track_entity_id": neg_tids["entity_id"],
             "neg_track_cluster_id": neg_tids["cluster_id"]

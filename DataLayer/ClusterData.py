@@ -115,22 +115,6 @@ class ClusterData(Data, ABC):
     def __gen_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
         pass
 
-    def pick_negative_tids(self, train_cluster_number, picked_num):
-        cluster_tids = self.cluster_track_ids[train_cluster_number]
-        tid_num = cluster_tids["num"]
-
-        # Pick another cluster.
-        picked_cluster = np.random.randint(0, self.cluster_num)
-        while train_cluster_number == picked_cluster:
-            picked_cluster = np.random.randint(0, self.cluster_num)
-
-        # Pick indices of tids.
-        picked_indices = set()
-        while len(picked_indices) < picked_num:
-            picked_index = np.random.randint(0, tid_num)
-            picked_indices.add(picked_index)
-
-        return {
-            "entity_id": cluster_tids["entity_id"][picked_indices],
-            "cluster_id": cluster_tids["cluster_id"][picked_indices]
-        }
+    @abstractmethod
+    def sample_negative_test_track_ids(self, uid, pid):
+        pass

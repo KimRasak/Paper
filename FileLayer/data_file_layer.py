@@ -1,6 +1,8 @@
+import numpy as np
 from FileLayer import TRAIN_FILE_PATH, PICK_TRAIN_FILE_PATH, TEST_FILE_PATH, PICK_TEST_FILE_PATH, \
     COUNT_FILE_NAME, PICK_COUNT_FILE_PATH
 from Common import DatasetNum
+
 
 """
 Provide read/write API of playlist files and count files.
@@ -60,9 +62,9 @@ def read_playlist_data(playlist_data_path):
             uid, pid, tids = ids[0], ids[1], ids[2:]
 
             if uid not in data:
-                data[uid] = {pid: tids}
+                data[uid] = {pid: np.array(tids)}
             elif pid not in data[uid]:
-                data[uid][pid] = tids
+                data[uid][pid] = np.array(tids)
 
             line = f.readline()
     return data

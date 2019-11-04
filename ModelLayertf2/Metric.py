@@ -11,9 +11,9 @@ class Metrics:
     avg_hrs: dict
     avg_ndcgs: dict
 
-    def __init__(self, hrs: dict, ndcgs: dict, max_k):
-        self.hrs = hrs
-        self.ndcgs = ndcgs
+    def __init__(self, max_k):
+        self.hrs = {k: [] for k in range(1, max_k + 1)}
+        self.ndcgs = {k: [] for k in range(1, max_k + 1)}
         self.max_k = max_k
 
     @staticmethod
