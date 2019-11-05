@@ -1,0 +1,8 @@
+number of user
+10745
+number of playlist
+23714
+number of track
+346471
+number of interaction
+954350
