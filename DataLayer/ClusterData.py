@@ -20,43 +20,43 @@ class ClusterData(Data, ABC):
         self.cluster_strategy: ClusterStrategyI = cluster_strategy
         self.parts: np.ndarray = self.cluster_strategy.get_cluster(data_set_num, train_data, cluster_num)
 
-        self.cluster_sizes = self.__get_cluster_sizes(self.parts, data_set_num)
-        self.cluster_bounds = self.__get_cluster_bounds(self.cluster_sizes)
+        self.cluster_sizes = self._get_cluster_sizes(self.parts, data_set_num)
+        self.cluster_bounds = self._get_cluster_bounds(self.cluster_sizes)
 
         # Extract training tuples from the cluster parts.
-        self.global_id_cluster_id_map = self.__gen_global_id_cluster_id_map(self.parts)
-        self.cluster_pos_train_tuples = self.__gen_train_tuples(train_data, data_set_num, self.parts,
-                                                                self.global_id_cluster_id_map)
+        self.global_id_cluster_id_map = self._gen_global_id_cluster_id_map(self.parts)
+        self.cluster_pos_train_tuples = self._gen_train_tuples(train_data, data_set_num, self.parts,
+                                                               self.global_id_cluster_id_map)
 
         # Extract track ids of each cluster. This is for negative sampling.
-        self.cluster_track_ids = self.__gen_cluster_track_ids(self.parts, data_set_num, self.global_id_cluster_id_map)
+        self.cluster_track_ids = self._gen_cluster_track_ids(self.parts, data_set_num, self.global_id_cluster_id_map)
 
         # Extract test tuples from the cluster parts. This is for testing.
-        self.test_pos_tuples = self.__gen_test_pos_tuples(self.test_data,
-                                                          data_set_num, self.global_id_cluster_id_map, self.parts)
+        self.test_pos_tuples = self._gen_test_pos_tuples(self.test_data,
+                                                         data_set_num, self.global_id_cluster_id_map, self.parts)
 
-        self.cluster_connections = self.__get_cluster_connections(train_data, data_set_num,
-                                                                  self.parts, self.global_id_cluster_id_map)
+        self.cluster_connections = self._get_cluster_connections(train_data, data_set_num,
+                                                                 self.parts, self.global_id_cluster_id_map)
 
         # Generate laplacian matrices.
-        self.clusters_laplacian_matrices: dict = self.__gen_laplacian_matrices(self.cluster_pos_train_tuples,
-                                                                               self.cluster_sizes,
-                                                                               self.cluster_connections,
-                                                                               ut_alpha=ut_alpha)
+        self.clusters_laplacian_matrices: dict = self._gen_laplacian_matrices(self.cluster_pos_train_tuples,
+                                                                              self.cluster_sizes,
+                                                                              self.cluster_connections,
+                                                                              ut_alpha=ut_alpha)
 
-    def __init_relation_data(self, train_data: dict):
+    def _init_relation_data(self, train_data: dict):
         """
         This function only needs to init dicts storing the relationships.
         The ids in the dicts are local to its entity.
         """
-        self.__init_relation_dict(train_data)
+        self._init_relation_dict(train_data)
 
     @abstractmethod
     def get_entity_names(self):
         pass
 
     @abstractmethod
-    def __get_cluster_sizes(self, parts, data_set_num: DatasetNum):
+    def _get_cluster_sizes(self, parts, data_set_num: DatasetNum):
         """
         Get sizes of each entity in the cluster and the cluster's size.
         :return A list of dict. Each dict stores the size of each entity and the total size of the cluster.
@@ -64,18 +64,18 @@ class ClusterData(Data, ABC):
         pass
 
     @abstractmethod
-    def __get_cluster_bounds(self, cluster_sizes):
+    def _get_cluster_bounds(self, cluster_sizes):
         pass
 
     @abstractmethod
-    def __gen_global_id_cluster_id_map(self, parts):
+    def _gen_global_id_cluster_id_map(self, parts):
         """
         Generate an numpy array that stores the mappings from global id to cluster id.
         """
         pass
 
     @abstractmethod
-    def __gen_train_tuples(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
+    def _gen_train_tuples(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
         """
         Generate the train tuples of each cluster.
         :return: A list of dicts. Each dict stores the training tuples of a cluster.
@@ -83,7 +83,7 @@ class ClusterData(Data, ABC):
         pass
 
     @abstractmethod
-    def __map_entity_id_to_global_id(self, entity_id, data_set_num, entity_name):
+    def _map_entity_id_to_global_id(self, entity_id, data_set_num, entity_name):
         """
         Map an entity id to a global id.
         :return: The related global id.
@@ -91,7 +91,7 @@ class ClusterData(Data, ABC):
         pass
 
     @abstractmethod
-    def __gen_cluster_track_ids(self, parts, data_set_num, global_id_cluster_id_map):
+    def _gen_cluster_track_ids(self, parts, data_set_num, global_id_cluster_id_map):
         """
         Generate a list to store the track ids(global id and cluster id) of each cluster.
         :return:
@@ -99,7 +99,7 @@ class ClusterData(Data, ABC):
         pass
 
     @abstractmethod
-    def __gen_test_pos_tuples(self, test_data, data_set_num: DatasetNum, global_id_cluster_id_map, parts):
+    def _gen_test_pos_tuples(self, test_data, data_set_num: DatasetNum, global_id_cluster_id_map, parts):
         """
         Generate postive test tuples according to the test data.
         Note that negative sampling of each test tuple will be done later.
@@ -108,11 +108,11 @@ class ClusterData(Data, ABC):
         pass
 
     @abstractmethod
-    def __get_cluster_connections(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
+    def _get_cluster_connections(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
         pass
 
     @abstractmethod
-    def __gen_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
+    def _gen_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
         pass
 
     @abstractmethod

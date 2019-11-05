@@ -48,11 +48,11 @@ class Data(metaclass=ABCMeta):
 
         # Read number of entities in the data set.
         self.data_set_num = self.__read_count_file(count_file_path)
-        self.sum = self.__get_data_sum(self.data_set_num)
+        self.sum = self._get_data_sum(self.data_set_num)
 
         # Read train data for training.
         self.train_data = data_file_layer.read_playlist_data(train_file_path)
-        self.__init_relation_data(self.train_data)
+        self._init_relation_data(self.train_data)
 
         # Generate test list data for testing.
         self.test_data = data_file_layer.read_playlist_data(test_file_path)
@@ -66,7 +66,7 @@ class Data(metaclass=ABCMeta):
         return data_file_layer.read_count_file(count_file_path)
 
     @abstractmethod
-    def __get_data_sum(self, data_set_num: DatasetNum):
+    def _get_data_sum(self, data_set_num: DatasetNum):
         """
         Given a DatasetNum Object, calculate and return the sum of all entities.
         """
@@ -74,7 +74,7 @@ class Data(metaclass=ABCMeta):
 
 
     @abstractmethod
-    def __init_relation_data(self, train_data: dict):
+    def _init_relation_data(self, train_data: dict):
         """
         Initialize dicts for storing the relationship of entities.
 
@@ -83,7 +83,7 @@ class Data(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def __init_relation_dict(self, train_data: dict):
+    def _init_relation_dict(self, train_data: dict):
         """
         Init matrices of relations among entities.
         :param train_data: Playlist data for training.

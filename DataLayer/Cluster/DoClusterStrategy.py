@@ -10,11 +10,11 @@ from Common import DatasetNum
 
 class DoClusterStrategyI(ABC):
     @abstractmethod
-    def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
+    def _gen_global_id_pairs(self, data, data_set_num: DatasetNum):
         pass
 
     @abstractmethod
-    def __get_sum(self, data_set_num: DatasetNum):
+    def _get_sum(self, data_set_num: DatasetNum):
         pass
 
     def do_cluster(self, data_set_num, data, num_cluster):
@@ -26,12 +26,13 @@ class DoClusterStrategyI(ABC):
         G = nx.Graph()
 
         # Add nodes to graph G.
-        sum = self.__get_sum(data_set_num)
-        G.add_nodes_from([i for i in range(sum)])
+        entity_sum = self._get_sum(data_set_num)
+        G.add_nodes_from([i for i in range(entity_sum)])
 
         # Add edges for graph G.
-        global_id_pairs = self.__gen_global_id_pairs(data, data_set_num)
+        global_id_pairs = self._gen_global_id_pairs(data, data_set_num)
         for from_id, to_id in global_id_pairs:
+            assert 0 <= from_id < entity_sum and 0 <= to_id < entity_sum
             G.add_edge(from_id, to_id)
 
         # Cluster the graph.
@@ -43,7 +44,7 @@ class DoClusterStrategyI(ABC):
               (num_cluster, part_graph_end_t - part_graph_start_t, len(parts)))
 
         # Make asserts.
-        assert len(parts) == sum
+        assert len(parts) == entity_sum
         for part in parts:
             assert 0 <= part < num_cluster
 
@@ -51,18 +52,18 @@ class DoClusterStrategyI(ABC):
 
 
 class DoUTClusterStrategy(DoClusterStrategyI):
-    def __get_sum(self, data_set_num: DatasetNum):
+    def _get_sum(self, data_set_num: DatasetNum):
         return data_set_num.user + data_set_num.track
 
-    def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
+    def _gen_global_id_pairs(self, data, data_set_num: DatasetNum):
         pass
 
 
 class DoPTClusterStrategy(DoClusterStrategyI):
-    def __get_sum(self, data_set_num: DatasetNum):
+    def _get_sum(self, data_set_num: DatasetNum):
         return data_set_num.playlist + data_set_num.track
 
-    def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
+    def _gen_global_id_pairs(self, data, data_set_num: DatasetNum):
         pairs = []
 
         # Define offsets of entities.
@@ -80,10 +81,10 @@ class DoPTClusterStrategy(DoClusterStrategyI):
 
 
 class DoUPTClusterStrategy(DoClusterStrategyI):
-    def __get_sum(self, data_set_num: DatasetNum):
+    def _get_sum(self, data_set_num: DatasetNum):
         return data_set_num.user + data_set_num.playlist + data_set_num.track
 
-    def __gen_global_id_pairs(self, data, data_set_num: DatasetNum):
+    def _gen_global_id_pairs(self, data, data_set_num: DatasetNum):
         pairs = []
 
         # Define offsets of entities.

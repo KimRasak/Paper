@@ -81,7 +81,7 @@ class MDR(layers.Layer):
         self.track_biases = tf.Variable(initializer[track_num], name="track_bias")
 
     def call(self, inputs, **kwargs):
-        return self.__MDR_layer(inputs["user_ebs"], inputs["playlist_ebs"], inputs["track_ebs"],
+        return self.__mdr_layer(inputs["user_ebs"], inputs["playlist_ebs"], inputs["track_ebs"],
                                 inputs["track_entity_ids"])
 
     @staticmethod
@@ -91,7 +91,7 @@ class MDR(layers.Layer):
         print("square:", square, len(square.shape) - 1)
         return tf.reduce_sum(square, axis=len(square.shape) - 1)
 
-    def __MDR_layer(self, embed_user, embed_playlist, embed_track, track_entity_ids):
+    def __mdr_layer(self, embed_user, embed_playlist, embed_track, track_entity_ids):
         delta_ut = embed_user - embed_track
         delta_pt = embed_playlist - embed_track
 

@@ -1,6 +1,6 @@
 import numpy as np
 from FileLayer import TRAIN_FILE_PATH, PICK_TRAIN_FILE_PATH, TEST_FILE_PATH, PICK_TEST_FILE_PATH, \
-    COUNT_FILE_NAME, PICK_COUNT_FILE_PATH
+    COUNT_FILE_NAME, PICK_COUNT_FILE_PATH, WHOLE_COUNT_FILE_PATH
 from Common import DatasetNum
 
 
@@ -26,7 +26,7 @@ def get_test_file_path(use_picked_data, data_set_name):
 
 def get_count_file_path(use_picked_data, data_set_name):
     if not use_picked_data:
-        return COUNT_FILE_NAME[data_set_name]
+        return WHOLE_COUNT_FILE_PATH[data_set_name]
     else:
         return PICK_COUNT_FILE_PATH[data_set_name]
 
@@ -70,19 +70,22 @@ def read_playlist_data(playlist_data_path):
     return data
 
 
-def write_count_file(dataset_num, count_file_path):
+def write_count_file(dataset_num: DatasetNum, count_file_path):
     # Write the number of user/playlist/track into the file.
     num_user = dataset_num.user
     num_playlist = dataset_num.playlist
     num_track = dataset_num.track
+    num_interaction = dataset_num.interaction
 
     with open(count_file_path, 'w') as f:
         f.write("number of user\n")
-        f.write(num_user + "\n")
+        f.write("{}\n".format(num_user))
         f.write("number of playlist\n")
-        f.write(num_playlist + "\n")
+        f.write("{}\n".format(num_playlist))
         f.write("number of track\n")
-        f.write(num_track + "\n")
+        f.write("{}\n".format(num_track))
+        f.write("number of interaction\n")
+        f.write("{}\n".format(num_interaction))
 
 
 def read_count_file(count_file_path):

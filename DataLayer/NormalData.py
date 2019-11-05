@@ -8,14 +8,14 @@ class NormalData(Data):
     def __init__(self, base_data_path):
         super().__init__(base_data_path)
 
-    def __init_relation_data(self, train_data):
+    def _init_relation_data(self, train_data):
         """
         Initialize dicts for storing the relationship of entities.
 
         :return: null
         """
         self.__init_relation_matrix(train_data)
-        self.__init_relation_dict(train_data)
+        self._init_relation_dict(train_data)
 
     @abstractmethod
     def __init_relation_matrix(self, data):

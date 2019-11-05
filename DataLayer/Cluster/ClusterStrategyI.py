@@ -28,7 +28,7 @@ class ClusterStrategyI(ABC):
 
         if os.path.exists(cluster_file_path):
             return self.__read_cluster_file(cluster_file_path)
-        parts = self.__cluster(data_set_num, data, num_cluster)
+        parts = self._cluster(data_set_num, data, num_cluster)
         self.__write_cluster_file(cluster_file_path, parts)
         return parts
 
@@ -39,7 +39,7 @@ class ClusterStrategyI(ABC):
         return np.array(cluster_file_layer.read_cluster_file(cluster_file_path))
 
     @abstractmethod
-    def __cluster(self, data_set_num: DatasetNum, data, num_cluster):
+    def _cluster(self, data_set_num: DatasetNum, data, num_cluster):
         """
         Generate clusters of the ids and return the parts.
         :return numpy.ndarray
@@ -47,31 +47,31 @@ class ClusterStrategyI(ABC):
         pass
 
     @abstractmethod
-    def __get_cluster_type_name(self):
+    def _get_cluster_type_name(self):
         pass
 
     def __get_cluster_file_path(self, num_cluster):
         cluster_dir_path = self.__cluster_dir_path
-        cluster_file_name = self.__get_cluster_file_name(num_cluster)
+        cluster_file_name = self._get_cluster_file_name(num_cluster)
 
         return os.path.join(cluster_dir_path, cluster_file_name)
 
     @abstractmethod
-    def __get_cluster_file_name(self, num_cluster):
+    def _get_cluster_file_name(self, num_cluster):
         pass
 
 
 class PTClusterStrategy(ClusterStrategyI):
     __do_cluster_strategy = DoPTClusterStrategy()
 
-    def __cluster(self, data_set_num, data, num_cluster):
+    def _cluster(self, data_set_num, data, num_cluster):
         return self.__do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
 
-    def __get_cluster_type_name(self):
+    def _get_cluster_type_name(self):
         return "clusterPT"
 
-    def __get_cluster_file_name(self, num_cluster):
-        return "%s_%d" % (self.__get_cluster_type_name(), num_cluster)
+    def _get_cluster_file_name(self, num_cluster):
+        return "%s_%d" % (self._get_cluster_type_name(), num_cluster)
 
 
 class UPTClusterStrategyI(ClusterStrategyI, ABC):
@@ -136,7 +136,7 @@ class UPTFromPTClusterStrategy(UPTClusterStrategyI):
         self.__do_cluster_strategy = DoPTClusterStrategy()
         self.__pick_cluster_strategy = pick_cluster_strategy
 
-    def __cluster(self, data_set_num, data, num_cluster):
+    def _cluster(self, data_set_num, data, num_cluster):
         data_set_sum = data_set_num.user + data_set_num.playlist + data_set_num.track
         parts = np.array((data_set_sum, ), dtype=np.int)
 
@@ -154,14 +154,14 @@ class UPTFromPTClusterStrategy(UPTClusterStrategyI):
         # Put user ids into parts
         return parts
 
-    def __get_cluster_type_name(self):
+    def _get_cluster_type_name(self):
         return "clusterUPT"
 
-    def __get_cluster_strategy_name(self):
+    def _get_cluster_strategy_name(self):
         return self.__pick_cluster_strategy.get_name()
 
-    def __get_cluster_file_name(self, num_cluster):
-        return "%s_%s_%d" % (self.__get_cluster_type_name(), self.__get_cluster_strategy_name(), num_cluster)
+    def _get_cluster_file_name(self, num_cluster):
+        return "%s_%s_%d" % (self._get_cluster_type_name(), self._get_cluster_strategy_name(), num_cluster)
 
 
 class UPTFromUPTClusterStrategy(UPTClusterStrategyI):
@@ -169,12 +169,12 @@ class UPTFromUPTClusterStrategy(UPTClusterStrategyI):
         super().__init__(data_set_name)
         self.__do_cluster_strategy = DoUPTClusterStrategy()
 
-    def __cluster(self, data_set_num, data, num_cluster):
+    def _cluster(self, data_set_num, data, num_cluster):
         parts = self.__do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
         return parts
 
-    def __get_cluster_type_name(self):
+    def _get_cluster_type_name(self):
         return "clusterUPT"
 
-    def __get_cluster_file_name(self, num_cluster):
-        return "%s_%d" % (self.__get_cluster_type_name(), num_cluster)
+    def _get_cluster_file_name(self, num_cluster):
+        return "%s_%d" % (self._get_cluster_type_name(), num_cluster)
