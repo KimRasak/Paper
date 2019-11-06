@@ -17,7 +17,7 @@ class DoClusterStrategyI(ABC):
     def _get_sum(self, data_set_num: DatasetNum):
         pass
 
-    def do_cluster(self, data_set_num, data, num_cluster):
+    def do_cluster(self, data_set_num, data, cluster_num):
         print("Generating the clusters...")
         # The order of nodes stored in graph G: U, P, T
         # for example: uid1, uid2, ..., pid1, pid2, ..., tid1, tid2, ...
@@ -37,16 +37,16 @@ class DoClusterStrategyI(ABC):
 
         # Cluster the graph.
         part_graph_start_t = time()
-        (edgecuts, parts) = metis.part_graph(G, num_cluster)
+        (edgecuts, parts) = metis.part_graph(G, cluster_num)
         part_graph_end_t = time()
 
         print("Generating %d clusters used %d seconds. There are %d nodes in the clusters." %
-              (num_cluster, part_graph_end_t - part_graph_start_t, len(parts)))
+              (cluster_num, part_graph_end_t - part_graph_start_t, len(parts)))
 
         # Make asserts.
         assert len(parts) == entity_sum
         for part in parts:
-            assert 0 <= part < num_cluster
+            assert 0 <= part < cluster_num
 
         return np.array(parts)
 

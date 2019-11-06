@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from time import time
 
 import numpy as np
 from Common import DatasetNum
@@ -12,6 +13,7 @@ class ClusterData(Data, ABC):
                  cluster_num=50, ut_alpha=1):
         super().__init__(data_set_name, use_picked_data=use_picked_data, batch_size=batch_size, epoch_times=epoch_times,
                          is_debug_mode=is_debug_mode)
+        all_start_t = time()
         self.cluster_num = cluster_num
 
         # Get cluster of the nodes.
@@ -39,10 +41,17 @@ class ClusterData(Data, ABC):
                                                                  self.parts, self.global_id_cluster_id_map)
 
         # Generate laplacian matrices.
+        gen_laplacian_start_t = time()
         self.clusters_laplacian_matrices: dict = self._gen_laplacian_matrices(self.cluster_pos_train_tuples,
                                                                               self.cluster_sizes,
                                                                               self.cluster_connections,
                                                                               ut_alpha=ut_alpha)
+        gen_laplacian_end_t = time()
+        print("Generating laplacian matrices used %f seconds." % (gen_laplacian_end_t - gen_laplacian_start_t))
+
+        # Print total time used.
+        all_end_t = time()
+        print("Reading data used %d seconds in all." % (all_end_t - all_start_t))
 
     def _init_relation_data(self, train_data: dict):
         """

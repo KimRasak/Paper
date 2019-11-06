@@ -116,8 +116,8 @@ class UPTClusterStrategyI(ClusterStrategyI, ABC):
         def pick_cluster(self, user: dict, pt_parts):
             """
             Return the cluster number of the first playlist.
-            :param user: Dict, where the keys are pids
-             and the values are the tids.
+            :param user: Dict, where the keys are playlist ids
+             and the values are the ids of the playlists' tracks.
             :param pt_parts: Cluster parts of the playlists and tracks.
             """
             for pid in user.keys():
@@ -138,17 +138,18 @@ class UPTFromPTClusterStrategy(UPTClusterStrategyI):
 
     def _cluster(self, data_set_num, data, num_cluster):
         data_set_sum = data_set_num.user + data_set_num.playlist + data_set_num.track
-        parts = np.array((data_set_sum, ), dtype=np.int)
+        parts = np.zeros((data_set_sum, ), dtype=np.int)
 
         # Generate the clusters from playlist and track ids.
         pt_parts = self.__do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
 
         for uid, user in data.items():
-            picked_cluster = self.__pick_cluster_strategy.pick_cluster(user, pt_parts)
-            parts[uid] = picked_cluster
+            picked_cluster_no = self.__pick_cluster_strategy.pick_cluster(user, pt_parts)
+            parts[uid] = picked_cluster_no
 
         for playlist_or_track_id in pt_parts:
             offset = data_set_num.user
+            assert offset <= playlist_or_track_id + offset < data_set_sum
             parts[playlist_or_track_id + offset] = pt_parts[playlist_or_track_id]
 
         # Put user ids into parts

@@ -24,4 +24,5 @@ if __name__ == '__main__':
                           save_loss_batch_num=300, embedding_size=64, learning_rate=2e-4, reg_loss_ratio=1e-4,
                           cluster_dropout_flag=True, node_dropout_ratio=0.1,
                           gnn_layer_num=3)
+    model.init()
     model.fit()

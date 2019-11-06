@@ -59,17 +59,19 @@ class BaseModel(metaclass=ABCMeta):
         self.learning_rate = learning_rate
         self.reg_loss_ratio = reg_loss_ratio
 
-        # Build model of the layers.
-        nets = self.__build_model()
+    def init(self):
+        # Init other variables.
+        self.initializer = tf.initializers.GlorotNormal()
+        self.optimizer = tf.optimizers.Adam()
 
         # Init log manager and save manager.
         model_name = self.__get_model_name()
         self.log_manager = LogManager(model_name)
-        self.optimizer = tf.optimizers.Adam()
+
+        # Build model of the layers.
+        nets = self._build_model()
         self.save_manager = SaveManager(model_name, self.optimizer, nets)
 
-        # Init other variables.
-        self.initializer = tf.initializers.GlorotNormal()
 
     def __get_model_name(self):
         def get_base_index(number):
@@ -96,24 +98,24 @@ class BaseModel(metaclass=ABCMeta):
         return model_name
 
     @abstractmethod
-    def __build_model(self):
+    def _build_model(self):
         pass
 
     def fit(self):
         cur_epoch_step = self.save_manager.get_train_step()
         for epoch in range(cur_epoch_step, self.epoch_num):
-            epoch_loss = self.__train_epoch(epoch)
-            metrics: Metric = self.__test(epoch)
+            epoch_loss = self._train_epoch(epoch)
+            metrics: Metric = self._test(epoch)
             self.__output_epoch_loss(epoch, epoch_loss)
             self.__write_test_result(metrics)
             self.__save_model()
 
     @abstractmethod
-    def __train_epoch(self, epoch):
+    def _train_epoch(self, epoch):
         pass
 
     @abstractmethod
-    def __test(self, epoch):
+    def _test(self, epoch):
         pass
 
     def __output_epoch_loss(self, epoch, epoch_loss: Loss):

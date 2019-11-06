@@ -3,9 +3,9 @@ import tensorflow as tf
 
 
 class ClusterUPTModel(ClusterModel):
-    def __train_epoch(self, epoch):
+    def _train_epoch(self, epoch):
         for cluster_no in range(self.cluster_num):
-            self.__train_cluster(cluster_no)
+            self._train_cluster(cluster_no)
 
         pass
 

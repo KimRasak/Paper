@@ -7,10 +7,10 @@ from ModelLayertf2.Metric import Metrics
 
 
 class G6_concat_MDR(ClusterUPTModel):
-    def __build_model(self):
+    def _build_model(self):
         self.cluster_initial_ebs = [tf.Variable(self.initializer([size["total"], self.embedding_size]),
                                                 name="cluster_{}_ebs".format(cluster_no))
-                                    for cluster_no, size in self.data.cluster_sizes.items()]
+                                    for cluster_no, size in enumerate(self.data.cluster_sizes)]
 
         self.full_GNN_layer = FullGNN(self.initializer, self.embedding_size,
                                       self.data.clusters_laplacian_matrices, self.data.cluster_bounds,
@@ -20,12 +20,12 @@ class G6_concat_MDR(ClusterUPTModel):
 
         self.MDR_layer = MDR(self.initializer, self.embedding_size, self.data.data_set_num.track)
 
-    def __train_cluster(self, pos_cluster_no):
+    def _train_cluster(self, pos_cluster_no):
         with tf.GradientTape() as tape:
             pos_initial_ebs = self.cluster_initial_ebs[pos_cluster_no]
             pos_train_tuples = self.data.cluster_pos_train_tuples[pos_cluster_no]
 
-            gnn_ebs = self.full_GNN_layer(pos_initial_ebs, cluster_no=pos_cluster_no)
+            gnn_ebs = self.full_GNN_layer(pos_initial_ebs, cluster_no=pos_cluster_no, train_flag=True)
 
             user_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["user_cluster_id"])
             playlist_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["playlist_cluster_id"])
@@ -34,7 +34,7 @@ class G6_concat_MDR(ClusterUPTModel):
 
             neg_cluster_no, neg_track_ids = self.neg_sample_strategy.sample_negative_tids(pos_cluster_no)
             neg_initial_ebs = self.cluster_initial_ebs[neg_cluster_no]
-            neg_gnn_ebs = self.full_GNN_layer(neg_initial_ebs, cluster_no=neg_cluster_no)
+            neg_gnn_ebs = self.full_GNN_layer(neg_initial_ebs, cluster_no=neg_cluster_no, train_flag=True)
             neg_track_ebs = tf.nn.embedding_lookup(neg_gnn_ebs, neg_track_ids["cluster_id"])
 
             pos_scores = self.MDR_layer({
@@ -67,9 +67,9 @@ class G6_concat_MDR(ClusterUPTModel):
             gradients = tape.gradient(loss, trainable_variables)
             self.optimizer.apply_gradients(zip(gradients, trainable_variables))
 
-    def __test(self, epoch):
+    def _test(self, epoch):
         # Compute gnn processed embeddings.
-        cluster_gnn_ebs = [self.full_GNN_layer(initial_ebs, cluster_no=cluster_no)
+        cluster_gnn_ebs = [self.full_GNN_layer(initial_ebs, cluster_no=cluster_no, train_flag=False)
                            for cluster_no, initial_ebs in enumerate(self.cluster_initial_ebs)]
         gnn_ebs = tf.concat(cluster_gnn_ebs, 0)
 

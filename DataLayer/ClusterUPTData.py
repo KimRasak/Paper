@@ -51,6 +51,11 @@ class ClusterUPTData(ClusterData):
             elif data_set_num.user + data_set_num.playlist <= global_id < self.sum:  # Track id.
                 cluster_size["t"] += 1
 
+        for cluster_number in range(self.cluster_num):
+            cluster_size = cluster_sizes[cluster_number]
+            if cluster_size["u"] <= 10 or cluster_size["p"] <= 10 or cluster_size["t"] <= 10:
+                print("Some entity's num is too small.")
+
         return cluster_sizes
 
     def _get_cluster_bounds(self, cluster_sizes):
@@ -62,6 +67,7 @@ class ClusterUPTData(ClusterData):
 
     def _gen_global_id_cluster_id_map(self, parts):
         """
+        Generate the map from global ids to cluster ids.
         Ids in parts are in the order of user, playlist, track,
         so the cluster id will also be in this order.
         :param parts:
@@ -72,7 +78,7 @@ class ClusterUPTData(ClusterData):
         global_id_cluster_id_map = np.zeros((len(parts), ), dtype=int)
 
         for global_id, cluster_number in enumerate(parts):
-            assert global_id_cluster_id_map[global_id] is 0
+            assert global_id_cluster_id_map[global_id] == 0
             global_id_cluster_id_map[global_id] = cluster_total_sizes[cluster_number]
             cluster_total_sizes[cluster_number] += 1
 
@@ -82,12 +88,13 @@ class ClusterUPTData(ClusterData):
         if entity_name not in [self.ENTITY_USER, self.ENTITY_PLAYLIST, self.ENTITY_TRACK]:
             raise Exception("Wrong entity name!")
 
-        if entity_name is self.ENTITY_USER:
+        if entity_name == self.ENTITY_USER:
             return entity_id
-        elif entity_name is self.ENTITY_PLAYLIST:
+        elif entity_name == self.ENTITY_PLAYLIST:
             return data_set_num.user + entity_id
-        elif entity_id is self.ENTITY_TRACK:
+        elif entity_name == self.ENTITY_TRACK:
             return data_set_num.user + data_set_num.playlist + entity_id
+        raise Exception("Wrong entity name!")
 
     def _gen_train_tuples(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
         cluster_pos_train_tuples = [dict() for i in range(self.cluster_num)]
@@ -254,6 +261,8 @@ class ClusterUPTData(ClusterData):
 
             clusters_laplacian_matrices[cluster_number] = dict()
             for entity_name, (start, end) in self.cluster_bounds[cluster_number].items():
+                if start == end:
+                    pass
                 clusters_laplacian_matrices[cluster_number][entity_name] = {
                     "L": L_matrix[start: end, :],
                     "LI": LI_matrix[start: end, :]

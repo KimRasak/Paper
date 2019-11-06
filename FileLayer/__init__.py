@@ -12,7 +12,7 @@ class DatasetName:
 
 
 # Define paths of raw data.
-RAW_DATA_BASE_PATH = "./raw-data"
+RAW_DATA_BASE_PATH = "../raw-data"
 RAW_THIRTY_MUSIC_PATH = os.path.join(RAW_DATA_BASE_PATH, DatasetName.THIRTY_MUSIC)
 RAW_AOTM_PATH = os.path.join(RAW_DATA_BASE_PATH, DatasetName.AOTM)
 
@@ -24,7 +24,7 @@ RAW_PLAYLIST_PATH = {
 # Define paths of data sets.
 # A data set usually contains a playlist file containing the playlist data
 # and a count file containing the number of ids.
-DATA_BASE_PATH = "./data"
+DATA_BASE_PATH = "../data"
 THIRTY_MUSIC_PATH = os.path.join(DATA_BASE_PATH, DatasetName.THIRTY_MUSIC)
 AOTM_PATH = os.path.join(DATA_BASE_PATH, DatasetName.AOTM)
 

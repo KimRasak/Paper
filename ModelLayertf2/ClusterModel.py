@@ -37,7 +37,8 @@ class GNN(layers.Layer):
     def __convert_sp_mat_to_sp_tensor(X):
         if X.getnnz() == 0:
             print("add one.", X.shape)
-            X[0, 0] = 1
+            return 0
+            # X[0, 0] = 1
         coo = X.tocoo().astype(np.float32)
         indices = np.mat([coo.row, coo.col]).transpose()
 
@@ -78,7 +79,7 @@ class MDR(layers.Layer):
         super(MDR, self).__init__()
         self.B1 = tf.Variable(initializer([eb_size]), name="MDR_B1")
         self.B2 = tf.Variable(initializer([eb_size]), name="MDR_B2")
-        self.track_biases = tf.Variable(initializer[track_num], name="track_bias")
+        self.track_biases = tf.Variable(initializer([track_num]), name="track_bias")
 
     def call(self, inputs, **kwargs):
         return self.__mdr_layer(inputs["user_ebs"], inputs["playlist_ebs"], inputs["track_ebs"],
@@ -141,21 +142,28 @@ class FullGNN(layers.Layer):
             self.Ws.extend(list(W_dots.values()))
 
             for cluster_no in range(cluster_num):
-                LIs = cluster_laplacian_matrices[cluster_no]["L"]
-                Ls = cluster_laplacian_matrices[cluster_no]["LI"]
+                LIs = {
+                    entity_name: cluster_laplacian_matrices[cluster_no][entity_name]["LI"]
+                    for entity_name in entity_names
+                }
+                Ls = {
+                    entity_name: cluster_laplacian_matrices[cluster_no][entity_name]["L"]
+                    for entity_name in entity_names
+                }
                 bounds = cluster_bounds[cluster_no]
                 GNN_layers.append(GNN(W_sides, W_dots, LIs, Ls, eb_size, bounds, dropout_flag, drop_out_ratio))
             self.multi_GNN_layers.append(GNN_layers)
 
     def call(self, initial_ebs, **kwargs):
         cluster_no = kwargs["cluster_no"]
+        train_flag = kwargs["train_flag"]
 
         # initial_ebs = self.cluster_initial_ebs[cluster_no]
         old_ebs = initial_ebs
         layers_ebs = []
         for layer_no in range(self.layer_num):
             GNN_layer = self.multi_GNN_layers[layer_no][cluster_no]
-            new_ebs = GNN_layer(old_ebs)
+            new_ebs = GNN_layer(old_ebs, train_flag=train_flag)
             layers_ebs.append(new_ebs)
 
             # Update variable.
@@ -188,5 +196,5 @@ class ClusterModel(BaseModel, ABC):
         self.neg_sample_strategy = OtherClusterStrategyTrain(self.data.cluster_track_ids)
 
     @abstractmethod
-    def __train_cluster(self, cluster_no):
+    def _train_cluster(self, cluster_no):
         pass

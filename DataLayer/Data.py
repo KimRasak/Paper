@@ -29,7 +29,6 @@ class Data(metaclass=ABCMeta):
 
     def __init__(self, data_set_name, use_picked_data=True,
                  batch_size=256, epoch_times=4, is_debug_mode=False):
-        t_all_start = time()
         self.data_set_name = data_set_name
         self.use_picked_data = use_picked_data
 
@@ -56,10 +55,6 @@ class Data(metaclass=ABCMeta):
 
         # Generate test list data for testing.
         self.test_data = data_file_layer.read_playlist_data(test_file_path)
-
-        # Print total time used.
-        t_all_end = time()
-        print("Reading data used %d seconds in all." % (t_all_end - t_all_start))
 
     @staticmethod
     def __read_count_file(count_file_path):
