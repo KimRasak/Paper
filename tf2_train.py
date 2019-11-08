@@ -1,3 +1,4 @@
+import tensorflow as tf
 from DataLayer.Cluster.ClusterStrategyI import UPTClusterStrategyI, UPTFromPTClusterStrategy, UPTFromUPTClusterStrategy
 from DataLayer.ClusterData import ClusterData
 from DataLayer.ClusterUPTData import ClusterUPTData
@@ -11,6 +12,12 @@ if __name__ == '__main__':
     epoch_num = 300
     batch_size = 256
     cluster_num = 100
+    import tensorflow as tf
+
+    gpu = tf.config.experimental.list_physical_devices('GPU')
+    print("Name:", gpu.name, "  Type:", gpu.device_type)
+
+    print(tf.test.is_built_with_cuda())
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
