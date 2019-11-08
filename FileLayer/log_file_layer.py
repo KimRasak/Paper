@@ -4,7 +4,7 @@ import numpy as np
 
 
 class LogManager:
-    OUTPUT_DIR = "../output/"
+    OUTPUT_DIR = os.path.abspath("./output/")
 
     def __init__(self, model_name):
         self.output_file = self.__open_output_file(model_name)
