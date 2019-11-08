@@ -88,8 +88,8 @@ class DoUPTClusterStrategy(DoClusterStrategyI):
         pairs = []
 
         # Define offsets of entities.
-        playlist_offset = data_set_num.playlist
-        track_offset = data_set_num.user + data_set_num.track
+        playlist_offset = data_set_num.user
+        track_offset = data_set_num.user + data_set_num.playlist
 
         for uid, user in data.items():
             for pid, tids in user.items():

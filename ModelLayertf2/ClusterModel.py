@@ -8,7 +8,7 @@ from ModelLayertf2.BaseModel import BaseModel
 from ModelLayertf2.Strategy.NegativeTrainSampleStrategy import OtherClusterStrategyTrain
 
 
-class GNN(layers.Layer):
+class GNN(tf.keras.layers.Layer):
     def __init__(self,
                  W_sides, W_dots,
                  LIs: dict, Ls: dict,
@@ -62,7 +62,7 @@ class GNN(layers.Layer):
             folds.append(fold)
         agg = tf.concat(folds, axis=0)
         if train_flag and self.dropout_flag:
-            dropout_embed = tf.nn.dropout(agg, 1 - self.dropout_ratio)
+            dropout_embed = tf.nn.dropout(agg, self.dropout_ratio)
             return dropout_embed
         else:
             return agg
@@ -97,8 +97,8 @@ class MDR(layers.Layer):
         delta_pt = embed_playlist - embed_track
 
         print("-----")
-        o1 = MDR.get_output(delta_ut, self.B1)
-        o2 = MDR.get_output(delta_pt, self.B2)
+        o1 = MDR.__get_output(delta_ut, self.B１)
+        o2 = MDR.__get_output(delta_pt, self.B2)
         print("shape of o1/o2:", o1.shape, o2.shape)
         print("-----")
 

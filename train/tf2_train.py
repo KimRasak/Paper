@@ -1,4 +1,4 @@
-from DataLayer.Cluster.ClusterStrategyI import UPTClusterStrategyI, UPTFromPTClusterStrategy
+from DataLayer.Cluster.ClusterStrategyI import UPTClusterStrategyI, UPTFromPTClusterStrategy, UPTFromUPTClusterStrategy
 from DataLayer.ClusterData import ClusterData
 from DataLayer.ClusterUPTData import ClusterUPTData
 from FileLayer import DatasetName
@@ -6,6 +6,7 @@ import os
 
 from ModelLayertf2.G6_concat_MDR import G6_concat_MDR
 
+# 在使用UPTFromPTClusterStrategy的情况下，出现很多cluster没有训练集可用
 if __name__ == '__main__':
     epoch_num = 300
     batch_size = 256
@@ -14,8 +15,9 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     data_set_name = DatasetName.THIRTY_MUSIC
-    pick_cluster_strategy = UPTClusterStrategyI.FirstChoicePickClusterStrategy()
-    cluster_strategy = UPTFromPTClusterStrategy(data_set_name, pick_cluster_strategy)
+    # pick_cluster_strategy = UPTClusterStrategyI.FirstChoicePickClusterStrategy()
+    # cluster_strategy = UPTFromPTClusterStrategy(data_set_name, pick_cluster_strategy)
+    cluster_strategy = UPTFromUPTClusterStrategy(data_set_name)
 
     data = ClusterUPTData(data_set_name, cluster_strategy, use_picked_data=False,
                  batch_size=256, epoch_times=4, is_debug_mode=False,

@@ -50,9 +50,9 @@ class ClusterStrategyI(ABC):
     def _get_cluster_type_name(self):
         pass
 
-    def __get_cluster_file_path(self, num_cluster):
+    def __get_cluster_file_path(self, cluster_num):
         cluster_dir_path = self.__cluster_dir_path
-        cluster_file_name = self._get_cluster_file_name(num_cluster)
+        cluster_file_name = self._get_cluster_file_name(cluster_num)
 
         return os.path.join(cluster_dir_path, cluster_file_name)
 
@@ -77,7 +77,7 @@ class PTClusterStrategy(ClusterStrategyI):
 class UPTClusterStrategyI(ClusterStrategyI, ABC):
     class PickClusterStrategyI(ABC):
         @abstractmethod
-        def pick_cluster(self, user: dict, pt_parts: np.ndarray):
+        def pick_cluster(self, user: dict, pt_parts: np.ndarray, dataset_num: DatasetNum):
             """
             Pick a cluster number for a user id that belongs to no cluster.
             :return:
@@ -89,7 +89,7 @@ class UPTClusterStrategyI(ClusterStrategyI, ABC):
             pass
 
     class MostNumPickClusterStrategy(PickClusterStrategyI):
-        def pick_cluster(self, user: dict, pt_parts):
+        def pick_cluster(self, user: dict, pt_parts, dataset_num: DatasetNum):
             """
             The playlists of the user belong to different clusters,
             so we choose and return the cluster number of the cluster
@@ -110,22 +110,23 @@ class UPTClusterStrategyI(ClusterStrategyI, ABC):
             return cluster_numbers[0]
 
         def get_name(self):
-            return "MostNum"
+            return "MostNumPick"
 
     class FirstChoicePickClusterStrategy(PickClusterStrategyI):
-        def pick_cluster(self, user: dict, pt_parts):
+        def pick_cluster(self, user: dict, pt_parts, dataset_num: DatasetNum):
             """
             Return the cluster number of the first playlist.
             :param user: Dict, where the keys are playlist ids
              and the values are the ids of the playlists' tracks.
             :param pt_parts: Cluster parts of the playlists and tracks.
             """
-            for pid in user.keys():
-                pid_offset = 0
-                return pt_parts[pid + pid_offset]
+            for entity_pid in user.keys():
+                global_pid = dataset_num.user + entity_pid
+                assert dataset_num.user <= global_pid < dataset_num.user + dataset_num.playlist
+                return pt_parts[global_pid]
 
         def get_name(self):
-            return "First"
+            return "FirstChoicePick"
 
 
 class UPTFromPTClusterStrategy(UPTClusterStrategyI):
@@ -138,25 +139,40 @@ class UPTFromPTClusterStrategy(UPTClusterStrategyI):
 
     def _cluster(self, data_set_num, data, num_cluster):
         data_set_sum = data_set_num.user + data_set_num.playlist + data_set_num.track
-        parts = np.zeros((data_set_sum, ), dtype=np.int)
+        parts = np.full((data_set_sum, ), -1)
 
         # Generate the clusters from playlist and track ids.
         pt_parts = self.__do_cluster_strategy.do_cluster(data_set_num, data, num_cluster)
 
-        for uid, user in data.items():
-            picked_cluster_no = self.__pick_cluster_strategy.pick_cluster(user, pt_parts)
-            parts[uid] = picked_cluster_no
+        zero_num = 0
+        for global_id, cluster_no in enumerate(pt_parts):
+            if cluster_no == 0:
+                zero_num += 1
 
-        for playlist_or_track_id in pt_parts:
-            offset = data_set_num.user
-            assert offset <= playlist_or_track_id + offset < data_set_sum
-            parts[playlist_or_track_id + offset] = pt_parts[playlist_or_track_id]
+        # Pick a cluster number for each user id.
+        for entity_uid, user in data.items():
+            global_uid = entity_uid
+            assert 0 <= global_uid < data_set_num.user
+            picked_cluster_no = self.__pick_cluster_strategy.pick_cluster(user, pt_parts, data_set_num)
+            parts[global_uid] = picked_cluster_no
+
+        # copy the cluster numbers in pt_parts to parts
+        for playlist_or_track_id, cluster_no in enumerate(pt_parts):
+            global_id = data_set_num.user + playlist_or_track_id
+            assert data_set_num.user <= global_id< data_set_sum
+            parts[global_id] = pt_parts[playlist_or_track_id]
+
+        zero_num = 0
+        for global_id, cluster_no in enumerate(parts):
+            if cluster_no == 0:
+                zero_num += 1
+            assert cluster_no != -1, "Wrong cluster number!"
 
         # Put user ids into parts
         return parts
 
     def _get_cluster_type_name(self):
-        return "clusterUPT"
+        return "clusterUPTFromPT"
 
     def _get_cluster_strategy_name(self):
         return self.__pick_cluster_strategy.get_name()
@@ -175,7 +191,7 @@ class UPTFromUPTClusterStrategy(UPTClusterStrategyI):
         return parts
 
     def _get_cluster_type_name(self):
-        return "clusterUPT"
+        return "clusterUPTFromUPT"
 
     def _get_cluster_file_name(self, num_cluster):
         return "%s_%d" % (self._get_cluster_type_name(), num_cluster)

@@ -1,10 +1,11 @@
+from time import time
+
 import tensorflow as tf
 
 from ModelLayertf2 import Metric
 from ModelLayertf2.ClusterModel import ClusterModel, MDR, FullGNN
 from ModelLayertf2.ClusterUPTModel import ClusterUPTModel
 from ModelLayertf2.Metric import Metrics
-
 
 class G6_concat_MDR(ClusterUPTModel):
     def _build_model(self):
@@ -21,6 +22,7 @@ class G6_concat_MDR(ClusterUPTModel):
         self.MDR_layer = MDR(self.initializer, self.embedding_size, self.data.data_set_num.track)
 
     def _train_cluster(self, pos_cluster_no):
+        train_cluster_start_t = time()
         with tf.GradientTape() as tape:
             pos_initial_ebs = self.cluster_initial_ebs[pos_cluster_no]
             pos_train_tuples = self.data.cluster_pos_train_tuples[pos_cluster_no]
@@ -30,18 +32,22 @@ class G6_concat_MDR(ClusterUPTModel):
             user_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["user_cluster_id"])
             playlist_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["playlist_cluster_id"])
             pos_track_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["pos_track_cluster_id"])
-            pos_track_entity_ids = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["pos_track_entity_id"])
 
-            neg_cluster_no, neg_track_ids = self.neg_sample_strategy.sample_negative_tids(pos_cluster_no)
+            neg_cluster_no, neg_track_ids = self.neg_sample_strategy.sample_negative_tids(pos_cluster_no,
+                                                                                          pos_train_tuples["length"])
             neg_initial_ebs = self.cluster_initial_ebs[neg_cluster_no]
             neg_gnn_ebs = self.full_GNN_layer(neg_initial_ebs, cluster_no=neg_cluster_no, train_flag=True)
             neg_track_ebs = tf.nn.embedding_lookup(neg_gnn_ebs, neg_track_ids["cluster_id"])
+
+            assert len(pos_train_tuples["user_cluster_id"]) == len(pos_train_tuples["playlist_cluster_id"]) \
+                == len(pos_train_tuples["pos_track_cluster_id"]) == len(pos_train_tuples["pos_track_entity_id"]) \
+                == len(neg_track_ids["cluster_id"])
 
             pos_scores = self.MDR_layer({
                 "user_ebs": user_ebs,
                 "playlist_ebs": playlist_ebs,
                 "track_ebs": pos_track_ebs,
-                "track_entity_ids": pos_track_entity_ids
+                "track_entity_ids": pos_train_tuples["pos_track_entity_id"]
             })
             neg_scores = self.MDR_layer({
                 "user_ebs": user_ebs,
@@ -66,6 +72,8 @@ class G6_concat_MDR(ClusterUPTModel):
             trainable_variables.extend(self.full_GNN_layer.get_trainable_variables())
             gradients = tape.gradient(loss, trainable_variables)
             self.optimizer.apply_gradients(zip(gradients, trainable_variables))
+        train_cluster_end_t = time()
+        print("Train cluster {} used {} seconds".format(pos_cluster_no, train_cluster_end_t - train_cluster_start_t))
 
     def _test(self, epoch):
         # Compute gnn processed embeddings.

@@ -103,13 +103,13 @@ class ClusterUPTData(ClusterData):
             pos_train_tuple.update({
                 "length": 0,
                 # Entity ids of u-p-t tuples.
-                "user_entity_id": np.array([]),
-                "playlist_entity_id": np.array([]),
-                "pos_track_entity_id": np.array([]),
+                "user_entity_id": np.array([], dtype=int),
+                "playlist_entity_id": np.array([], dtype=int),
+                "pos_track_entity_id": np.array([], dtype=int),
                 # Cluster ids of u-p-t tuples.
-                "user_cluster_id": np.array([]),
-                "playlist_cluster_id": np.array([]),
-                "pos_track_cluster_id": np.array([])
+                "user_cluster_id": np.array([], dtype=int),
+                "playlist_cluster_id": np.array([], dtype=int),
+                "pos_track_cluster_id": np.array([], dtype=int)
             })
 
         def ids_are_in_same_cluster(global_uid, global_pid, global_tid, parts):
@@ -145,10 +145,18 @@ class ClusterUPTData(ClusterData):
                     pos_train_tuple["user_cluster_id"] = np.append(pos_train_tuple["user_cluster_id"], cluster_uid)
                     pos_train_tuple["playlist_cluster_id"] = np.append(pos_train_tuple["playlist_cluster_id"], cluster_pid)
                     pos_train_tuple["pos_track_cluster_id"] = np.append(pos_train_tuple["pos_track_cluster_id"], cluster_tid)
+
+        # for i in range(self.cluster_num):
+        #     train_tuples = cluster_pos_train_tuples[i]
+        #     assert train_tuples["length"] != 0
         return cluster_pos_train_tuples
 
     def _gen_cluster_track_ids(self, parts, data_set_num: DatasetNum, global_id_cluster_id_map):
-        cluster_track_ids = [{"num": 0, "entity_id": np.array([]), "cluster_id": np.array([])} for _ in range(self.cluster_num)]
+        cluster_track_ids = [{
+            "num": 0,
+            "entity_id": np.array([], dtype=int),
+            "cluster_id": np.array([], dtype=int)}
+            for _ in range(self.cluster_num)]
 
         tid_offset = data_set_num.user + data_set_num.playlist
         for entity_tid in range(data_set_num.track):
