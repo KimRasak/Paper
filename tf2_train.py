@@ -14,8 +14,9 @@ if __name__ == '__main__':
     cluster_num = 100
     import tensorflow as tf
 
-    gpu = tf.config.experimental.list_physical_devices('GPU')
-    print("Name:", gpu.name, "  Type:", gpu.device_type)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        print("Name:", gpu.name, "  Type:", gpu.device_type)
 
     print(tf.test.is_built_with_cuda())
 
