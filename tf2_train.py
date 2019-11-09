@@ -14,11 +14,13 @@ if __name__ == '__main__':
     cluster_num = 100
     import tensorflow as tf
 
+    print("-----")
     gpus = tf.config.experimental.list_physical_devices('GPU')
     for gpu in gpus:
         print("Name:", gpu.name, "  Type:", gpu.device_type)
 
     print(tf.test.is_built_with_cuda())
+    print("-----")
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
