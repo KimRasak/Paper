@@ -20,6 +20,7 @@ if __name__ == '__main__':
         print("Name:", gpu.name, "  Type:", gpu.device_type)
 
     print(tf.test.is_built_with_cuda())
+    print(tf.test.is_gpu_available())
     print("-----")
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
