@@ -16,10 +16,16 @@ if __name__ == '__main__':
 
     print("-----")
     gpus = tf.config.experimental.list_physical_devices('GPU')
-    tf.config.experimental.set_visible_devices(gpus, device_type='GPU')
+    print("All gpus:")
     for gpu in gpus:
         print("=====")
         print("Name:", gpu.name, "  Type:", gpu.device_type)
+
+    gpu_start = 1
+    gpu_end = 3
+    print("Only use gpus [{}, {})".format(gpu_start, gpu_end))
+    tf.config.experimental.set_visible_devices(gpus[gpu_start: gpu_end], device_type='GPU')
+
 
     print(tf.test.is_built_with_cuda())
     print(tf.test.is_gpu_available())

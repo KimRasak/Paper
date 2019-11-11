@@ -33,18 +33,23 @@ class G6_concat_MDR(ClusterUPTModel):
             gnn_end_t = time()
             print("Generating the cluster's GNN embeddings used {} seconds".format(gnn_end_t - gnn_start_t))
 
-            eb_lookup_start_t = time()
+            pos_eb_lookup_start_t = time()
             user_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["user_cluster_id"])
             playlist_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["playlist_cluster_id"])
             pos_track_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["pos_track_cluster_id"])
+            pos_eb_lookup_end_t = time()
+            print("Positive embeddings lookup used {} seconds.".format(pos_eb_lookup_end_t - pos_eb_lookup_start_t))
 
+            sample_start_t = time()
             neg_cluster_no, neg_track_ids = self.neg_sample_strategy.sample_negative_tids(pos_cluster_no,
                                                                                           pos_train_tuples["length"])
+            print("Sampleing negative track ids used {} seconds".format(time() - sample_start_t))
+
+            neg_ebs_start_t = time()
             neg_initial_ebs = self.cluster_initial_ebs[neg_cluster_no]
             neg_gnn_ebs = self.full_GNN_layer(neg_initial_ebs, cluster_no=neg_cluster_no, train_flag=True)
             neg_track_ebs = tf.nn.embedding_lookup(neg_gnn_ebs, neg_track_ids["cluster_id"])
-            eb_lookup_end_t = time()
-            print("Embeddings lookup used {} seconds.".format(eb_lookup_end_t - eb_lookup_start_t))
+            print("Negative gnn embeddings + lookup used {} seconds.".format(time() - neg_ebs_start_t))
 
             assert len(pos_train_tuples["user_cluster_id"]) == len(pos_train_tuples["playlist_cluster_id"]) \
                 == len(pos_train_tuples["pos_track_cluster_id"]) == len(pos_train_tuples["pos_track_entity_id"]) \
