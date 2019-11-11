@@ -16,11 +16,14 @@ if __name__ == '__main__':
 
     print("-----")
     gpus = tf.config.experimental.list_physical_devices('GPU')
+    tf.config.experimental.set_visible_devices(gpus, device_type='GPU')
     for gpu in gpus:
+        print("=====")
         print("Name:", gpu.name, "  Type:", gpu.device_type)
 
     print(tf.test.is_built_with_cuda())
     print(tf.test.is_gpu_available())
+    tf.debugging.set_log_device_placement(True)
     print("-----")
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
