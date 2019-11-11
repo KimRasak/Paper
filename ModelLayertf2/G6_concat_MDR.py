@@ -31,8 +31,9 @@ class G6_concat_MDR(ClusterUPTModel):
             gnn_start_t = time()
             gnn_ebs = self.full_GNN_layer(pos_initial_ebs, cluster_no=pos_cluster_no, train_flag=True)
             gnn_end_t = time()
-            print("GNN used {} seconds".format(gnn_end_t - gnn_start_t))
+            print("Generating the cluster's GNN embeddings used {} seconds".format(gnn_end_t - gnn_start_t))
 
+            eb_lookup_start_t = time()
             user_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["user_cluster_id"])
             playlist_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["playlist_cluster_id"])
             pos_track_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["pos_track_cluster_id"])
@@ -42,6 +43,8 @@ class G6_concat_MDR(ClusterUPTModel):
             neg_initial_ebs = self.cluster_initial_ebs[neg_cluster_no]
             neg_gnn_ebs = self.full_GNN_layer(neg_initial_ebs, cluster_no=neg_cluster_no, train_flag=True)
             neg_track_ebs = tf.nn.embedding_lookup(neg_gnn_ebs, neg_track_ids["cluster_id"])
+            eb_lookup_end_t = time()
+            print("Embeddings lookup used {} seconds.".format(eb_lookup_end_t - eb_lookup_start_t))
 
             assert len(pos_train_tuples["user_cluster_id"]) == len(pos_train_tuples["playlist_cluster_id"]) \
                 == len(pos_train_tuples["pos_track_cluster_id"]) == len(pos_train_tuples["pos_track_entity_id"]) \
@@ -69,6 +72,7 @@ class G6_concat_MDR(ClusterUPTModel):
             loss = mf_loss + reg_loss
 
             # Compute and apply gradients.
+            update_gradients_start_t = time()
             trainable_variables = []
             trainable_variables.append(self.cluster_initial_ebs[pos_cluster_no])
             trainable_variables.append(self.cluster_initial_ebs[neg_cluster_no])
@@ -76,6 +80,8 @@ class G6_concat_MDR(ClusterUPTModel):
             trainable_variables.extend(self.full_GNN_layer.get_trainable_variables())
             gradients = tape.gradient(loss, trainable_variables)
             self.optimizer.apply_gradients(zip(gradients, trainable_variables))
+            update_gradients_end_t = time()
+            print("Updating gradients used {} seconds".format(update_gradients_end_t - update_gradients_start_t))
         train_cluster_end_t = time()
         print("Train cluster {} used {} seconds".format(pos_cluster_no, train_cluster_end_t - train_cluster_start_t))
 
