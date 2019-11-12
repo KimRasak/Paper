@@ -12,27 +12,33 @@ if __name__ == '__main__':
     epoch_num = 300
     batch_size = 256
     cluster_num = 100
-    import tensorflow as tf
-
     print("-----")
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    print("All gpus:")
-    for gpu in gpus:
-        print("=====")
-        print("Name:", gpu.name, "  Type:", gpu.device_type)
-
-    gpu_start = 1
-    gpu_end = 3
-    print("Only use gpus [{}, {})".format(gpu_start, gpu_end))
-    tf.config.experimental.set_visible_devices(gpus[gpu_start: gpu_end], device_type='GPU')
-
-
-    print(tf.test.is_built_with_cuda())
-    print(tf.test.is_gpu_available())
-    tf.debugging.set_log_device_placement(True)
+    print("is built with cuda: ", tf.test.is_built_with_cuda())
+    # print("is gpu available: ", tf.test.is_gpu_available())
+    # tf.debugging.set_log_device_placement(True)
     print("-----")
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    print("-----")
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # print("All available gpus:")
+    # for gpu in gpus:
+    #     print("=====")
+    #     print("Name:", gpu.name, "  Type:", gpu.device_type)
+    #     tf.config.experimental.set_memory_growth(gpu, True)
+
+    # print("Only use gpus [{}, {})".format(gpu_start, gpu_end))
+    tf.config.experimental.set_visible_devices(gpus[1:3], device_type='GPU')
+
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+    # logical_devices = tf.config.experimental.list_logical_devices('GPU')
+    visible_devices = tf.config.experimental.get_visible_devices()
+    for gpu in visible_devices:
+        print("******")
+        print("logical device Name:", gpu.name, "  Type:", gpu.device_type)
+
+    # Logical device was not created for first GPU
+    # assert len(logical_devices) == len(physical_devices) - 2
 
     data_set_name = DatasetName.THIRTY_MUSIC
     # pick_cluster_strategy = UPTClusterStrategyI.FirstChoicePickClusterStrategy()
@@ -46,5 +52,6 @@ if __name__ == '__main__':
                           save_loss_batch_num=300, embedding_size=64, learning_rate=2e-4, reg_loss_ratio=1e-4,
                           cluster_dropout_flag=True, node_dropout_ratio=0.1,
                           gnn_layer_num=3)
-    model.init()
+    with tf.device(gpus[1].name):
+      model.init()
     model.fit()
