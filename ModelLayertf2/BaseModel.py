@@ -15,7 +15,8 @@ class Loss:
     mf_loss: np.float
 
     def __init__(self, reg_loss=0.0, mf_loss=0.0):
-        self.clear()
+        self.reg_loss = reg_loss
+        self.mf_loss = mf_loss
 
     def clear(self):
         self.reg_loss, self.mf_loss = 0.0, 0.0
@@ -40,7 +41,7 @@ class Loss:
         return self.reg_loss + self.mf_loss
 
     def to_string(self):
-        return "reg_loss: %f, mf_loss: %f" % (self.reg_loss, self.mf_loss)
+        return "[reg_loss: %f, mf_loss: %f]" % (self.reg_loss, self.mf_loss)
 
 
 class BaseModel(metaclass=ABCMeta):
@@ -104,9 +105,9 @@ class BaseModel(metaclass=ABCMeta):
     def fit(self):
         cur_epoch_step = self.save_manager.get_train_step()
         for epoch in range(cur_epoch_step, self.epoch_num):
-            epoch_loss = self._train_epoch(epoch)
+            epoch_loss, epoch_time = self._train_epoch(epoch)
             metrics: Metric = self._test(epoch)
-            self.__output_epoch_loss(epoch, epoch_loss)
+            self.__output_epoch_message(epoch, epoch_loss, epoch_time)
             self.__write_test_result(metrics)
             self.__save_model()
 
@@ -118,8 +119,11 @@ class BaseModel(metaclass=ABCMeta):
     def _test(self, epoch):
         pass
 
-    def __output_epoch_loss(self, epoch, epoch_loss: Loss):
-        log = "Epoch %d complete. %s" % (epoch, epoch_loss.to_string())
+    def __output_epoch_message(self, epoch, epoch_loss: Loss, epoch_time):
+        """
+        Output the loss of the epoch and total time used in the epoch,
+        """
+        log = "Epoch %d used %f seconds. The epoch loss is: %s" % (epoch, epoch_time, epoch_loss.to_string())
         self.log_manager.print_and_write(log)
 
     def __write_test_result(self, metrics: Metric):

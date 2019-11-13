@@ -3,6 +3,7 @@ from time import time
 import tensorflow as tf
 
 from ModelLayertf2 import Metric
+from ModelLayertf2.BaseModel import Loss
 from ModelLayertf2.ClusterModel import ClusterModel, MDR, FullGNN
 from ModelLayertf2.ClusterUPTModel import ClusterUPTModel
 from ModelLayertf2.Metric import Metrics
@@ -89,6 +90,7 @@ class G6_concat_MDR(ClusterUPTModel):
             # print("Updating gradients used {} seconds".format(update_gradients_end_t - update_gradients_start_t))
         train_cluster_end_t = time()
         # print("Train cluster {} used {} seconds".format(pos_cluster_no, train_cluster_end_t - train_cluster_start_t))
+        return Loss(reg_loss, mf_loss)
 
     def _test(self, epoch):
         # Compute gnn processed embeddings.
