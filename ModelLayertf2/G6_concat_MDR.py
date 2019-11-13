@@ -97,7 +97,7 @@ class G6_concat_MDR(ClusterUPTModel):
         # Compute gnn processed embeddings.
         cluster_gnn_ebs = [self.full_GNN_layer(initial_ebs, cluster_no=cluster_no, train_flag=False)
                            for cluster_no, initial_ebs in enumerate(self.cluster_initial_ebs)]
-        gnn_ebs = tf.concat(cluster_gnn_ebs, 0)
+        global_gnn_ebs = tf.concat(cluster_gnn_ebs, 0)
 
         # For each group compute metrices.
         test_pos_tuples = self.data.test_pos_tuples
@@ -106,21 +106,31 @@ class G6_concat_MDR(ClusterUPTModel):
             user_entity_id = test_pos_tuples["user_entity_id"][i]
             playlist_entity_id = test_pos_tuples["playlist_entity_id"][i]
             pos_track_entity_id = test_pos_tuples["track_entity_id"][i]
+            user_global_id = test_pos_tuples["user_global_id"][i]
+            playlist_global_id = test_pos_tuples["playlist_global_id"][i]
+            pos_track_global_id = test_pos_tuples["track_global_id"][i]
+
             neg_tids = self.data.sample_negative_test_track_ids(user_entity_id, playlist_entity_id)
 
+            # Used by track embeddings.
+            track_global_ids = [pos_track_global_id]
+            track_global_ids.extend(neg_tids["global_id"])
+            track_global_ids = np.array(track_global_ids, dtype=int)
+
+            # Used by track biases.
             track_entity_ids = [pos_track_entity_id]
             track_entity_ids.extend(neg_tids["entity_id"])
             track_entity_ids = np.array(track_entity_ids, dtype=int)
 
-            user_ebs = tf.nn.embedding_lookup(gnn_ebs, user_entity_id)
-            playlist_ebs = tf.nn.embedding_lookup(gnn_ebs, playlist_entity_id)
-            tracks_ebs = tf.nn.embedding_lookup(gnn_ebs, track_entity_ids)
+            user_ebs = tf.nn.embedding_lookup(global_gnn_ebs, user_global_id)
+            playlist_ebs = tf.nn.embedding_lookup(global_gnn_ebs, playlist_global_id)
+            tracks_ebs = tf.nn.embedding_lookup(global_gnn_ebs, track_global_ids)
 
             scores = self.MDR_layer({
                 "user_ebs": user_ebs,
                 "playlist_ebs": playlist_ebs,
                 "track_ebs": tracks_ebs,
-                "track_entity_ids": neg_tids["global_id"]
+                "track_entity_ids": track_entity_ids
             })
 
             metrics.add_metrics(track_entity_ids, scores, pos_track_entity_id)

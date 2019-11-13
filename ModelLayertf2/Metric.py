@@ -35,13 +35,13 @@ class Metrics:
                 return np.log(2) / np.log(i + 2)
         return 0
 
-    def add_metrics(self, test_tids, tid_scores, tid):
+    def add_metrics(self, tids, tid_scores, pos_tid):
         sorted_indices = np.argsort(-tid_scores)
-        test_tids = np.array(test_tids)
+        tids = np.array(tids, dtype=int)
         for k in range(1, self.max_k + 1):
             indices = sorted_indices[:k]  # indices of items with highest scores
-            ranklist = test_tids[indices]
-            hr_k, ndcg_k = Metrics.__get_metric(ranklist, tid)
+            ranklist = tids[indices]
+            hr_k, ndcg_k = Metrics.__get_metric(ranklist, pos_tid)
             self.hrs[k].append(hr_k)
             self.ndcgs[k].append(ndcg_k)
 
