@@ -31,25 +31,25 @@ class G6_concat_MDR(ClusterUPTModel):
             gnn_start_t = time()
             gnn_ebs = self.full_GNN_layer(pos_initial_ebs, cluster_no=pos_cluster_no, train_flag=True)
             gnn_end_t = time()
-            print("Generating the cluster's GNN embeddings used {} seconds".format(gnn_end_t - gnn_start_t))
+            # print("Generating the cluster's GNN embeddings used {} seconds".format(gnn_end_t - gnn_start_t))
 
             pos_eb_lookup_start_t = time()
             user_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["user_cluster_id"])
             playlist_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["playlist_cluster_id"])
             pos_track_ebs = tf.nn.embedding_lookup(gnn_ebs, pos_train_tuples["pos_track_cluster_id"])
             pos_eb_lookup_end_t = time()
-            print("Positive embeddings lookup used {} seconds.".format(pos_eb_lookup_end_t - pos_eb_lookup_start_t))
+            # print("Positive embeddings lookup used {} seconds.".format(pos_eb_lookup_end_t - pos_eb_lookup_start_t))
 
             sample_start_t = time()
             neg_cluster_no, neg_track_ids = self.neg_sample_strategy.sample_negative_tids(pos_cluster_no,
                                                                                           pos_train_tuples["length"])
-            print("Sampleing negative track ids used {} seconds".format(time() - sample_start_t))
+            # print("Sampleing negative track ids used {} seconds".format(time() - sample_start_t))
 
             neg_ebs_start_t = time()
             neg_initial_ebs = self.cluster_initial_ebs[neg_cluster_no]
             neg_gnn_ebs = self.full_GNN_layer(neg_initial_ebs, cluster_no=neg_cluster_no, train_flag=True)
             neg_track_ebs = tf.nn.embedding_lookup(neg_gnn_ebs, neg_track_ids["cluster_id"])
-            print("Negative gnn embeddings + lookup used {} seconds.".format(time() - neg_ebs_start_t))
+            # print("Negative gnn embeddings + lookup used {} seconds.".format(time() - neg_ebs_start_t))
 
             assert len(pos_train_tuples["user_cluster_id"]) == len(pos_train_tuples["playlist_cluster_id"]) \
                 == len(pos_train_tuples["pos_track_cluster_id"]) == len(pos_train_tuples["pos_track_entity_id"]) \
@@ -86,9 +86,9 @@ class G6_concat_MDR(ClusterUPTModel):
             gradients = tape.gradient(loss, trainable_variables)
             self.optimizer.apply_gradients(zip(gradients, trainable_variables))
             update_gradients_end_t = time()
-            print("Updating gradients used {} seconds".format(update_gradients_end_t - update_gradients_start_t))
+            # print("Updating gradients used {} seconds".format(update_gradients_end_t - update_gradients_start_t))
         train_cluster_end_t = time()
-        print("Train cluster {} used {} seconds".format(pos_cluster_no, train_cluster_end_t - train_cluster_start_t))
+        # print("Train cluster {} used {} seconds".format(pos_cluster_no, train_cluster_end_t - train_cluster_start_t))
 
     def _test(self, epoch):
         # Compute gnn processed embeddings.

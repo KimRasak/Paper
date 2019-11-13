@@ -89,26 +89,24 @@ class MDR(layers.Layer):
     def __get_output(delta, B):
         B_delta = tf.multiply(B, delta)
         square = tf.square(B_delta)
-        print("square:", square, len(square.shape) - 1)
+        # print("square:", square, len(square.shape) - 1)
         return tf.reduce_sum(square, axis=len(square.shape) - 1)
 
     def __mdr_layer(self, embed_user, embed_playlist, embed_track, track_entity_ids):
         delta_ut = embed_user - embed_track
         delta_pt = embed_playlist - embed_track
 
-        print("-----")
         o1 = MDR.__get_output(delta_ut, self.B１)
         o2 = MDR.__get_output(delta_pt, self.B2)
-        print("shape of o1/o2:", o1.shape, o2.shape)
-        print("-----")
+        # print("shape of o1/o2:", o1.shape, o2.shape)
+        # print("-----")
 
         track_bias = tf.nn.embedding_lookup(self.track_biases, track_entity_ids)
 
         return o1 + o2 + track_bias
 
     def get_trainable_variables(self):
-        variables = [self.B1, self.B2].extend(self.track_biases)
-        return variables
+        return [self.B1, self.B2, self.track_biases]
 
     def get_reg_loss(self):
         return tf.nn.l2_loss(self.B1) + tf.nn.l2_loss(self.B2)

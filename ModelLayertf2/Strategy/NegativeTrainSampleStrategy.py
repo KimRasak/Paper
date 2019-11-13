@@ -23,10 +23,10 @@ class OtherClusterStrategyTrain(NegativeTrainSampleStrategy):
 
         # Pick indices of tids.
         # picked_num = self.cluster_track_ids[pos_cluster_no]["num"]
-        picked_indices = set()
+        picked_indices = []
         while len(picked_indices) < picked_num:
             picked_index = np.random.randint(0, neg_tid_num)
-            picked_indices.add(picked_index)
+            picked_indices.append(picked_index)
         picked_indices = np.array(list(picked_indices), dtype=int)
 
         # Generate picked track ids.

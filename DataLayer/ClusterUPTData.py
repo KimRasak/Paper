@@ -176,11 +176,11 @@ class ClusterUPTData(ClusterData):
             # Entity ids.
             "user_entity_id": np.array([]),
             "playlist_entity_id": np.array([]),
-            "pos_track_entity_id": np.array([]),
+            "track_entity_id": np.array([]),
             # Global ids.
             "user_global_id": np.array([]),
             "playlist_global_id": np.array([]),
-            "pos_track_global_id": np.array([])
+            "track_global_id": np.array([])
         }
 
         for entity_uid, user in test_data.items():
@@ -195,11 +195,11 @@ class ClusterUPTData(ClusterData):
                     test_tuples["length"] += 1
                     test_tuples["user_entity_id"] = np.append(test_tuples["user_entity_id"], entity_uid)
                     test_tuples["playlist_entity_id"] = np.append(test_tuples["playlist_entity_id"], entity_pid)
-                    test_tuples["pos_track_entity_id"] = np.append(test_tuples["pos_track_entity_id"], entity_tid)
+                    test_tuples["track_entity_id"] = np.append(test_tuples["track_entity_id"], entity_tid)
 
                     test_tuples["user_global_id"] = np.append(test_tuples["user_global_id"], global_uid)
                     test_tuples["playlist_global_id"] = np.append(test_tuples["playlist_global_id"], global_pid)
-                    test_tuples["pos_track_global_id"] = np.append(test_tuples["pos_track_global_id"], global_tid)
+                    test_tuples["track_global_id"] = np.append(test_tuples["track_global_id"], global_tid)
 
         return test_tuples
 
