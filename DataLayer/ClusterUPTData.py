@@ -283,8 +283,8 @@ class ClusterUPTData(ClusterData):
         track_num = self.data_set_num.track
         negative_test_tids = {
             "num": 0,
-            "entity_id": np.array([]),
-            "global_id": np.array([])
+            "entity_id": np.array([], dtype=int),
+            "global_id": np.array([], dtype=int)
         }
         while negative_test_tids["num"] < 100:
             picked_tid = np.random.randint(0, track_num)
