@@ -46,8 +46,8 @@ class Metrics:
             self.ndcgs[k].append(ndcg_k)
 
     def cal_avg_metrics(self):
-        avg_hrs = dict()
-        avg_ndcgs = dict()
+        self.avg_hrs = dict()
+        self.avg_ndcgs = dict()
         for k in range(1, self.max_k + 1):
             self.avg_hrs[k] = np.average(self.hrs[k])
             self.avg_ndcgs[k] = np.average(self.ndcgs[k])
