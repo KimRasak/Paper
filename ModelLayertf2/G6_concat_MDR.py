@@ -1,5 +1,6 @@
 from time import time
 
+import numpy as np
 import tensorflow as tf
 
 from ModelLayertf2 import Metric
@@ -109,6 +110,7 @@ class G6_concat_MDR(ClusterUPTModel):
 
             track_entity_ids = [pos_track_entity_id]
             track_entity_ids.extend(neg_tids["entity_id"])
+            track_entity_ids = np.array(track_entity_ids, dtype=int)
 
             user_ebs = tf.nn.embedding_lookup(gnn_ebs, user_entity_id)
             playlist_ebs = tf.nn.embedding_lookup(gnn_ebs, playlist_entity_id)
