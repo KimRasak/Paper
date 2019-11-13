@@ -95,6 +95,7 @@ class G6_concat_MDR(ClusterUPTModel):
         return Loss(reg_loss, mf_loss)
 
     def _test(self, epoch):
+        test_start_time = time()
         # Compute gnn processed embeddings.
         cluster_gnn_ebs = [self.full_GNN_layer(initial_ebs, cluster_no=cluster_no, train_flag=False)
                            for cluster_no, initial_ebs in enumerate(self.cluster_initial_ebs)]
@@ -136,4 +137,5 @@ class G6_concat_MDR(ClusterUPTModel):
 
             metrics.add_metrics(track_entity_ids, scores, pos_track_entity_id)
         metrics.cal_avg_metrics()
-        return metrics
+        test_end_time = time()
+        return metrics, test_end_time - test_start_time
