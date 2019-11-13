@@ -73,9 +73,10 @@ class G6_concat_MDR(ClusterUPTModel):
             mf_loss = tf.reduce_mean(-tf.math.log(tf.nn.sigmoid(pos_scores - neg_scores)))
             reg_loss_B = tf.nn.l2_loss(self.MDR_layer.get_reg_loss())
             reg_loss_W = tf.nn.l2_loss(self.full_GNN_layer.get_reg_loss())
-            reg_loss_emb = tf.nn.l2_loss(user_ebs) + tf.nn.l2_loss(playlist_ebs) + tf.nn.l2_loss(
-                pos_track_ebs) + tf.nn.l2_loss(neg_track_ebs)
-            reg_loss = self.reg_loss_ratio * (reg_loss_emb + reg_loss_B + reg_loss_W)
+            train_tuples_length = pos_train_tuples["length"]
+            reg_loss_ebs = (tf.nn.l2_loss(user_ebs) + tf.nn.l2_loss(playlist_ebs) +
+                            tf.nn.l2_loss(pos_track_ebs) + tf.nn.l2_loss(neg_track_ebs)) / train_tuples_length
+            reg_loss = self.reg_loss_ratio * (reg_loss_ebs + reg_loss_B + reg_loss_W)
             loss = mf_loss + reg_loss
 
             # Compute and apply gradients.
@@ -134,5 +135,5 @@ class G6_concat_MDR(ClusterUPTModel):
             })
 
             metrics.add_metrics(track_entity_ids, scores, pos_track_entity_id)
-
+        metrics.cal_avg_metrics()
         return metrics
