@@ -61,4 +61,5 @@ class Metrics:
     def to_string(self):
         hrs_str = ", ".join(["%f" % self.avg_hrs[k] for k in range(1, self.max_k + 1)])
         ndcgs_str = ", ".join(["%f" % self.avg_ndcgs[k] for k in range(1, self.max_k + 1)])
-        return "hr_k: {}\n ndcg_k: {}\n".format(hrs_str, ndcgs_str)
+        return "hr_10: {}, ndcg_10: {}, hr_k: {}\n ndcg_k: {}\n"\
+            .format(self.avg_hrs[10], self.avg_ndcgs[10], hrs_str, ndcgs_str)

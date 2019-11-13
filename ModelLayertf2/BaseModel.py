@@ -123,7 +123,7 @@ class BaseModel(metaclass=ABCMeta):
         """
         Output the loss of the epoch and total time used in the epoch,
         """
-        log = "Epoch %d used %f seconds. The epoch loss is: %s" % (epoch, epoch_time, epoch_loss.to_string())
+        log = "Epoch %d used %f seconds. The epoch loss is: %s\n" % (epoch, epoch_time, epoch_loss.to_string())
         self.log_manager.print_and_write(log)
 
     def __write_test_result(self, metrics: Metric):
