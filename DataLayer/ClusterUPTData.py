@@ -174,13 +174,13 @@ class ClusterUPTData(ClusterData):
         test_tuples = {
             "length": 0,
             # Entity ids.
-            "user_entity_id": np.array([]),
-            "playlist_entity_id": np.array([]),
-            "track_entity_id": np.array([]),
+            "user_entity_id": np.array([], dtype=int),
+            "playlist_entity_id": np.array([], dtype=int),
+            "track_entity_id": np.array([], dtype=int),
             # Global ids.
-            "user_global_id": np.array([]),
-            "playlist_global_id": np.array([]),
-            "track_global_id": np.array([])
+            "user_global_id": np.array([], dtype=int),
+            "playlist_global_id": np.array([], dtype=int),
+            "track_global_id": np.array([], dtype=int)
         }
 
         for entity_uid, user in test_data.items():
