@@ -24,3 +24,4 @@ logs
 *demo.py
 
 output/*.txt
+tensorboard

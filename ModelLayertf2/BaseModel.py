@@ -127,7 +127,7 @@ class BaseModel(metaclass=ABCMeta):
         self.log_manager.print_and_write(log)
 
     def __output_test_result(self, epoch, test_time, metrics: Metric):
-        print("hrs_10: {}, ndcgs_10: {}", metrics.get_avg_hr(10), metrics.get_avg_ndcg(10))
+        print("hrs_10: {}, ndcgs_10: {}".format(metrics.get_avg_hr(10), metrics.get_avg_ndcg(10)))
         self.log_manager.write("Test in epoch {} used {} seconds.\n".format(epoch, test_time))
         self.log_manager.write(metrics.to_string())
 
