@@ -13,7 +13,7 @@ This model consists of 3 parts:
 def get_output(delta, B):
     B_delta = tf.multiply(B, delta)
     square = tf.square(B_delta)
-    print("square:", square, len(square.shape) - 1)
+    # print("square:", square, len(square.shape) - 1)
     return tf.reduce_sum(square, axis=len(square.shape) - 1)
 
 

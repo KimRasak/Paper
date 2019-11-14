@@ -51,7 +51,7 @@ if __name__ == '__main__':
                  cluster_num=100, ut_alpha=1)
     model = G6_concat_MDR(data, epoch_num,
                           save_loss_batch_num=300, embedding_size=8, learning_rate=2e-4, reg_loss_ratio=1e-4,
-                          cluster_dropout_flag=True, node_dropout_ratio=0.1,
+                          cluster_dropout_flag=True, cluster_dropout_ratio=0.1,
                           gnn_layer_num=3)
     # with tf.device(gpus[2].name):
       # with tf.device('/device:gpu:2'):

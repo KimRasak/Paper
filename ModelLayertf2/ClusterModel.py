@@ -182,14 +182,14 @@ class FullGNN(layers.Layer):
 class ClusterModel(BaseModel, ABC):
     def __init__(self, data: ClusterData, epoch_num,
                  save_loss_batch_num=300, embedding_size=64, learning_rate=2e-4, reg_loss_ratio=5e-5,
-                 cluster_dropout_flag=True, node_dropout_ratio=0.1,
+                 cluster_dropout_flag=True, cluster_dropout_ratio=0.1,
                  gnn_layer_num=3):
         super().__init__(epoch_num, save_loss_batch_num,
                          embedding_size, learning_rate, reg_loss_ratio)
         self.data = data
         self.cluster_num = data.cluster_num
         self.cluster_dropout_flag = cluster_dropout_flag
-        self.cluster_dropout_ratio = node_dropout_ratio
+        self.cluster_dropout_ratio = cluster_dropout_ratio
         self.gnn_layer_num = gnn_layer_num
         self.neg_sample_strategy = OtherClusterStrategyTrain(self.data.cluster_track_ids)
 
