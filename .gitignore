@@ -22,3 +22,5 @@ logs
 
 # demo
 *demo.py
+
+output/*.txt
