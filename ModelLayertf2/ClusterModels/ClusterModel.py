@@ -1,10 +1,11 @@
 from abc import abstractmethod, ABC
+from time import time
 
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
-from DataLayer.ClusterData import ClusterData
-from ModelLayertf2.BaseModel import BaseModel
+from DataLayer.ClusterDatas.ClusterData import ClusterData
+from ModelLayertf2.BaseModel import BaseModel, Loss
 from ModelLayertf2.Strategy.NegativeTrainSampleStrategy import OtherClusterStrategyTrain
 
 
@@ -72,44 +73,6 @@ class GNN(tf.keras.layers.Layer):
         variables.extend(list(self.W_sides.values()))
         variables.extend(list(self.W_dots.values()))
         return variables
-
-
-class MDR(layers.Layer):
-    def __init__(self, initializer, eb_size, track_num):
-        super(MDR, self).__init__()
-        self.B1 = tf.Variable(initializer([eb_size]), name="MDR_B1")
-        self.B2 = tf.Variable(initializer([eb_size]), name="MDR_B2")
-        self.track_biases = tf.Variable(initializer([track_num]), name="track_bias")
-
-    def call(self, inputs, **kwargs):
-        return self.__mdr_layer(inputs["user_ebs"], inputs["playlist_ebs"], inputs["track_ebs"],
-                                inputs["track_entity_ids"])
-
-    @staticmethod
-    def __get_output(delta, B):
-        B_delta = tf.multiply(B, delta)
-        square = tf.square(B_delta)
-        # print("square:", square, len(square.shape) - 1)
-        return tf.reduce_sum(square, axis=len(square.shape) - 1)
-
-    def __mdr_layer(self, embed_user, embed_playlist, embed_track, track_entity_ids):
-        delta_ut = embed_user - embed_track
-        delta_pt = embed_playlist - embed_track
-
-        o1 = MDR.__get_output(delta_ut, self.B１)
-        o2 = MDR.__get_output(delta_pt, self.B2)
-        # print("shape of o1/o2:", o1.shape, o2.shape)
-        # print("-----")
-
-        track_bias = tf.nn.embedding_lookup(self.track_biases, track_entity_ids)
-
-        return o1 + o2 + track_bias
-
-    def get_trainable_variables(self):
-        return [self.B1, self.B2, self.track_biases]
-
-    def get_reg_loss(self):
-        return tf.nn.l2_loss(self.B1) + tf.nn.l2_loss(self.B2)
 
 
 class FullGNN(layers.Layer):
@@ -180,11 +143,9 @@ class FullGNN(layers.Layer):
 
 
 class ClusterModel(BaseModel, ABC):
-    def __init__(self, data: ClusterData, epoch_num,
-                 save_loss_batch_num=300, embedding_size=64, learning_rate=2e-4, reg_loss_ratio=5e-5,
-                 cluster_dropout_flag=True, cluster_dropout_ratio=0.1,
-                 gnn_layer_num=3):
-        super().__init__(epoch_num, save_loss_batch_num,
+    def __init__(self, data: ClusterData, epoch_num, embedding_size=64, learning_rate=2e-4, reg_loss_ratio=5e-5,
+                 cluster_dropout_flag=True, cluster_dropout_ratio=0.1, gnn_layer_num=3):
+        super().__init__(epoch_num,
                          embedding_size, learning_rate, reg_loss_ratio)
         self.data = data
         self.cluster_num = data.cluster_num
@@ -192,6 +153,15 @@ class ClusterModel(BaseModel, ABC):
         self.cluster_dropout_ratio = cluster_dropout_ratio
         self.gnn_layer_num = gnn_layer_num
         self.neg_sample_strategy = OtherClusterStrategyTrain(self.data.cluster_track_ids)
+
+    def _train_epoch(self, epoch):
+        epoch_loss = Loss()
+        epoch_start_time = time()
+        for cluster_no in range(self.cluster_num):
+            cluster_loss: Loss = self._train_cluster(cluster_no)
+            epoch_loss.add_loss(cluster_loss)
+        epoch_end_time = time()
+        return epoch_loss, epoch_end_time - epoch_start_time
 
     @abstractmethod
     def _train_cluster(self, cluster_no):

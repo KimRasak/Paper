@@ -3,6 +3,7 @@ from collections import namedtuple
 
 import tensorflow as tf
 import numpy as np
+from tensorflow.keras import layers
 
 from DataLayer.Data import Data
 from FileLayer.ckpt_file_layer import SaveManager
@@ -44,21 +45,57 @@ class Loss:
         return "[reg_loss: %f, mf_loss: %f]" % (self.reg_loss, self.mf_loss)
 
 
+class MDR(layers.Layer):
+    def __init__(self, initializer, eb_size, track_num):
+        super(MDR, self).__init__()
+        self.B1 = tf.Variable(initializer([eb_size]), name="MDR_B1")
+        self.B2 = tf.Variable(initializer([eb_size]), name="MDR_B2")
+        self.track_biases = tf.Variable(initializer([track_num]), name="track_bias")
+
+    def call(self, inputs, **kwargs):
+        return self.__mdr_layer(inputs["user_ebs"], inputs["playlist_ebs"], inputs["track_ebs"],
+                                inputs["track_entity_ids"])
+
+    @staticmethod
+    def __get_output(delta, B):
+        B_delta = tf.multiply(B, delta)
+        square = tf.square(B_delta)
+        # print("square:", square, len(square.shape) - 1)
+        return tf.reduce_sum(square, axis=len(square.shape) - 1)
+
+    def __mdr_layer(self, user_ebs, playlist_ebs, track_ebs, track_entity_ids):
+        delta_ut = user_ebs - track_ebs
+        delta_pt = playlist_ebs - track_ebs
+
+        o1 = MDR.__get_output(delta_ut, self.B1)
+        o2 = MDR.__get_output(delta_pt, self.B2)
+        # print("shape of o1/o2:", o1.shape, o2.shape)
+        # print("-----")
+
+        track_bias = tf.nn.embedding_lookup(self.track_biases, track_entity_ids)
+
+        return o1 + o2 + track_bias
+
+    def get_trainable_variables(self):
+        return [self.B1, self.B2, self.track_biases]
+
+    def get_reg_loss(self):
+        return tf.nn.l2_loss(self.B1) + tf.nn.l2_loss(self.B2)
+
+
 class BaseModel(metaclass=ABCMeta):
     epoch_num: int  # number of train epochs.
-    save_loss_batch_num: int  # Save the output of batch loss for every {save_loss_batch_num} batch.
     embedding_size: int
     learning_rate = 2e-4
     reg_loss_ratio = 5e-5  # The ratio of regularization loss.
 
-    def __init__(self, epoch_num, save_loss_batch_num=300,
-                 embedding_size=64, learning_rate=2e-4, reg_loss_ratio=5e-5):
+    def __init__(self, epoch_num, embedding_size=64, learning_rate=2e-4, reg_loss_ratio=5e-5):
         # Init params.
         self.epoch_num = epoch_num
-        self.save_loss_batch_num = save_loss_batch_num
         self.embedding_size = embedding_size
         self.learning_rate = learning_rate
         self.reg_loss_ratio = reg_loss_ratio
+        self.max_K = 20
 
     def init(self):
         # Init other variables.
@@ -72,7 +109,6 @@ class BaseModel(metaclass=ABCMeta):
         # Build model of the layers.
         nets = self._build_model()
         self.save_manager = SaveManager(model_name, self.optimizer, nets)
-
 
     def __get_model_name(self):
         def get_base_index(number):

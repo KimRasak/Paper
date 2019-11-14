@@ -58,7 +58,7 @@ class ClusterData(Data, ABC):
         This function only needs to init dicts storing the relationships.
         The ids in the dicts are local to its entity.
         """
-        self._init_relation_dict(train_data)
+        self._init_relation_dict()
 
     @abstractmethod
     def get_entity_names(self):
@@ -122,8 +122,4 @@ class ClusterData(Data, ABC):
 
     @abstractmethod
     def _gen_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
-        pass
-
-    @abstractmethod
-    def sample_negative_test_track_ids(self, uid, pid):
         pass

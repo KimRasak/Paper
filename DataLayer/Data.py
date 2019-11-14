@@ -28,11 +28,9 @@ class Data(metaclass=ABCMeta):
     ENTITY_TRACK = "track"
 
     def __init__(self, data_set_name, use_picked_data=True,
-                 batch_size=256, epoch_times=4, is_debug_mode=False):
+                 epoch_times=4, is_debug_mode=False):
         self.data_set_name = data_set_name
         self.use_picked_data = use_picked_data
-
-        self.batch_size = batch_size
 
         # Define the file paths of the data set.
         train_file_path = data_file_layer.get_train_file_path(use_picked_data, data_set_name)
@@ -78,10 +76,9 @@ class Data(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _init_relation_dict(self, train_data: dict):
+    def _init_relation_dict(self):
         """
         Init matrices of relations among entities.
-        :param train_data: Playlist data for training.
         :return: null
         """
         pass
@@ -100,6 +97,13 @@ class Data(metaclass=ABCMeta):
         t_test_end = time()
         print("Generate test list used %2f seconds." % (t_test_end - t_test_start))
         return test_list
+
+    @abstractmethod
+    def sample_negative_test_track_ids(self, uid, pid):
+        """
+        Sample negative test tracks when testing, usually sample 100 negative tracks.
+        """
+        pass
 
 
 

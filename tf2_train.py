@@ -1,11 +1,10 @@
 import tensorflow as tf
-from DataLayer.Cluster.ClusterStrategyI import UPTClusterStrategyI, UPTFromPTClusterStrategy, UPTFromUPTClusterStrategy
-from DataLayer.ClusterData import ClusterData
-from DataLayer.ClusterUPTData import ClusterUPTData
+from DataLayer.Cluster.ClusterStrategyI import UPTFromUPTClusterStrategy
+from DataLayer.ClusterDatas.ClusterUPTData import ClusterUPTData
 from FileLayer import DatasetName
 import os
 
-from ModelLayertf2.G6_concat_MDR import G6_concat_MDR
+from ModelLayertf2.ClusterModels.G6_concat_MDR import G6_concat_MDR
 
 # 在使用UPTFromPTClusterStrategy的情况下，出现很多cluster没有训练集可用
 if __name__ == '__main__':
@@ -47,10 +46,9 @@ if __name__ == '__main__':
     cluster_strategy = UPTFromUPTClusterStrategy(data_set_name)
 
     data = ClusterUPTData(data_set_name, cluster_strategy, use_picked_data=False,
-                 batch_size=256, epoch_times=4, is_debug_mode=False,
+                 epoch_times=4, is_debug_mode=False,
                  cluster_num=100, ut_alpha=1)
-    model = G6_concat_MDR(data, epoch_num,
-                          save_loss_batch_num=300, embedding_size=8, learning_rate=2e-4, reg_loss_ratio=1e-4,
+    model = G6_concat_MDR(data, epoch_num, embedding_size=8, learning_rate=2e-4, reg_loss_ratio=1e-4,
                           cluster_dropout_flag=True, cluster_dropout_ratio=0.1,
                           gnn_layer_num=3)
     # with tf.device(gpus[2].name):

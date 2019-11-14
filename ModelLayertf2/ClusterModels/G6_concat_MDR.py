@@ -3,10 +3,9 @@ from time import time
 import numpy as np
 import tensorflow as tf
 
-from ModelLayertf2 import Metric
 from ModelLayertf2.BaseModel import Loss
-from ModelLayertf2.ClusterModel import ClusterModel, MDR, FullGNN
-from ModelLayertf2.ClusterUPTModel import ClusterUPTModel
+from ModelLayertf2.ClusterModels.ClusterModel import MDR, FullGNN, ClusterModel
+from ModelLayertf2.ClusterModels.ClusterUPTModel import ClusterUPTModel
 from ModelLayertf2.Metric import Metrics
 
 
@@ -107,7 +106,7 @@ class G6_concat_MDR(ClusterUPTModel):
 
         # For each group compute metrices.
         test_pos_tuples = self.data.test_pos_tuples
-        metrics = Metrics(20)
+        metrics = Metrics(self.max_K)
         for i in range(test_pos_tuples["length"]):
             user_entity_id = test_pos_tuples["user_entity_id"][i]
             playlist_entity_id = test_pos_tuples["playlist_entity_id"][i]
