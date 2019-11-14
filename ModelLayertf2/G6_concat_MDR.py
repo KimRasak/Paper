@@ -69,11 +69,15 @@ class G6_concat_MDR(ClusterUPTModel):
                 "track_ebs": neg_track_ebs,
                 "track_entity_ids": neg_track_ids["entity_id"]
             })
+            assert not np.any(np.isnan(pos_scores))
+            assert not np.any(np.isnan(neg_scores))
+
 
             mf_loss = tf.reduce_mean(-tf.math.log(tf.nn.sigmoid(pos_scores - neg_scores)))
             reg_loss_B = tf.nn.l2_loss(self.MDR_layer.get_reg_loss())
             reg_loss_W = tf.nn.l2_loss(self.full_GNN_layer.get_reg_loss())
             train_tuples_length = pos_train_tuples["length"]
+            assert train_tuples_length != 0
             reg_loss_ebs = (tf.nn.l2_loss(user_ebs) + tf.nn.l2_loss(playlist_ebs) +
                             tf.nn.l2_loss(pos_track_ebs) + tf.nn.l2_loss(neg_track_ebs)) / train_tuples_length
             reg_loss = self.reg_loss_ratio * (reg_loss_ebs + reg_loss_B + reg_loss_W)
