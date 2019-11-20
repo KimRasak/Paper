@@ -20,6 +20,13 @@ class MDRModel(NormalUPTModel):
 
         self.MDR_layer = MDR(self.initializer, self.embedding_size, data_set_num.track)
 
+        return {
+            "user_ebs": self.user_ebs,
+            "playlist_ebs": self.playlist_ebs,
+            "track_ebs": self.track_ebs,
+            "MDR_layer": self.MDR_layer
+        }
+
     def _train_batch(self, batch_no, batch):
         with tf.GradientTape() as tape:
             user_ebs = tf.nn.embedding_lookup(self.user_ebs, batch["uids"])
@@ -28,20 +35,20 @@ class MDRModel(NormalUPTModel):
             neg_track_ebs = tf.nn.embedding_lookup(self.track_ebs, batch["neg_tids"])
 
             pos_scores = self.MDR_layer({
-                "uesr_ebs": user_ebs,
+                "user_ebs": user_ebs,
                 "playlist_ebs": playlist_ebs,
                 "track_ebs": pos_track_ebs,
                 "track_entity_ids": batch["pos_tids"]
             })
 
             neg_scores = self.MDR_layer({
-                "uesr_ebs": user_ebs,
+                "user_ebs": user_ebs,
                 "playlist_ebs": playlist_ebs,
                 "track_ebs": neg_track_ebs,
                 "track_entity_ids": batch["neg_tids"]
             })
 
-            mf_loss = tf.reduce_mean(-tf.math.log(tf.nn.sigmoid(pos_scores - neg_scores)))
+            mf_loss = tf.reduce_mean(-tf.math.log(tf.nn.sigmoid(pos_scores - neg_scores) + 1e-8))
             reg_loss_B = tf.nn.l2_loss(self.MDR_layer.get_reg_loss())
             reg_loss_ebs = (tf.nn.l2_loss(user_ebs) + tf.nn.l2_loss(playlist_ebs) +
                             tf.nn.l2_loss(pos_track_ebs) + tf.nn.l2_loss(neg_track_ebs)) / batch["size"]
@@ -61,7 +68,6 @@ class MDRModel(NormalUPTModel):
         # Compute gnn processed embeddings.
 
         # For each group compute metrices.
-        test_pos_tuples = self.data.test_pos_tuples
         metrics = Metrics(self.max_K)
         for uid, user in self.data.test_data.items():
             for pid, tids in user.items():
@@ -69,8 +75,8 @@ class MDRModel(NormalUPTModel):
                     neg_tids = self.data.sample_negative_test_track_ids(uid, pid)
 
                     tids = [pos_tid]
-                    tids.extend(neg_tids)
-                    tids = np.array(tids)
+                    tids.extend(neg_tids["id"])
+                    tids = np.array(tids, dtype=int)
 
                     user_eb = tf.nn.embedding_lookup(self.user_ebs, uid)
                     playlist_eb = tf.nn.embedding_lookup(self.playlist_ebs, pid)

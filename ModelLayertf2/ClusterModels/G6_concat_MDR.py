@@ -3,8 +3,8 @@ from time import time
 import numpy as np
 import tensorflow as tf
 
-from ModelLayertf2.BaseModel import Loss
-from ModelLayertf2.ClusterModels.ClusterModel import MDR, FullGNN, ClusterModel
+from ModelLayertf2.BaseModel import Loss, MDR
+from ModelLayertf2.ClusterModels.ClusterModel import FullGNN, ClusterModel
 from ModelLayertf2.ClusterModels.ClusterUPTModel import ClusterUPTModel
 from ModelLayertf2.Metric import Metrics
 
@@ -15,15 +15,36 @@ class G6_concat_MDR(ClusterUPTModel):
                                                 name="cluster_{}_ebs".format(cluster_no))
                                     for cluster_no, size in enumerate(self.data.cluster_sizes)]
 
+        Ws = [{
+            "W_sides": {
+                entity_name: tf.Variable(self.initializer([self.embedding_size, self.embedding_size]),
+                                         name="W_side_layer_{}_{}".format(layer_no, entity_name))
+                for entity_name in self.data.get_entity_names()
+            },
+            "W_dots": {
+                entity_name: tf.Variable(self.initializer([self.embedding_size, self.embedding_size]),
+                                         name="W_dot_layer_{}_{}".format(layer_no, entity_name))
+                for entity_name in self.data.get_entity_names()
+            }
+        } for layer_no in range(self.gnn_layer_num)]
+
         self.full_GNN_layer = FullGNN(self.initializer, self.embedding_size,
-                                      self.data.clusters_laplacian_matrices, self.data.cluster_bounds,
-                                      self.data.get_entity_names(),
+                                      Ws, self.data.clusters_laplacian_matrices,
+                                      self.data.cluster_bounds, self.data.get_entity_names(),
                                       self.cluster_dropout_flag, self.cluster_dropout_ratio,
                                       self.data.cluster_num, self.gnn_layer_num)
 
         self.MDR_layer = MDR(self.initializer, self.embedding_size, self.data.data_set_num.track)
 
-    def _train_cluster(self, pos_cluster_no):
+        stored = {
+            "cluster_ebs": self.cluster_initial_ebs,
+            "full_GNN": self.full_GNN_layer,
+            "MDR": self.MDR_layer
+        }
+
+        return stored
+
+    def _train_cluster(self, epoch, pos_cluster_no):
         train_cluster_start_t = time()
         with tf.GradientTape() as tape:
             pos_initial_ebs = self.cluster_initial_ebs[pos_cluster_no]
@@ -42,8 +63,10 @@ class G6_concat_MDR(ClusterUPTModel):
             # print("Positive embeddings lookup used {} seconds.".format(pos_eb_lookup_end_t - pos_eb_lookup_start_t))
 
             sample_start_t = time()
-            neg_cluster_no, neg_track_ids = self.neg_sample_strategy.sample_negative_tids(pos_cluster_no,
-                                                                                          pos_train_tuples["length"])
+            if epoch % 3 == 0:
+                neg_cluster_no, neg_track_ids = self.same_cluster_strategy.sample_negative_tids(pos_cluster_no)
+            else:
+                neg_cluster_no, neg_track_ids = self.other_cluster_strategy.sample_negative_tids(pos_cluster_no)
             # print("Sampleing negative track ids used {} seconds".format(time() - sample_start_t))
 
             neg_ebs_start_t = time()
@@ -68,6 +91,7 @@ class G6_concat_MDR(ClusterUPTModel):
                 "track_ebs": neg_track_ebs,
                 "track_entity_ids": neg_track_ids["entity_id"]
             })
+
             assert not np.any(np.isnan(pos_scores))
             assert not np.any(np.isnan(neg_scores))
 
@@ -80,6 +104,7 @@ class G6_concat_MDR(ClusterUPTModel):
             reg_loss_ebs = (tf.nn.l2_loss(user_ebs) + tf.nn.l2_loss(playlist_ebs) +
                             tf.nn.l2_loss(pos_track_ebs) + tf.nn.l2_loss(neg_track_ebs)) / train_tuples_length
             reg_loss = self.reg_loss_ratio * (reg_loss_ebs + reg_loss_B + reg_loss_W)
+            assert not np.any(np.isnan(pos_scores)) and not np.any(np.isnan(reg_loss))
             loss = mf_loss + reg_loss
 
             # Compute and apply gradients.

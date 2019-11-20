@@ -99,8 +99,8 @@ class BaseModel(metaclass=ABCMeta):
 
     def init(self):
         # Init other variables.
-        self.initializer = tf.initializers.GlorotNormal()
-        self.optimizer = tf.optimizers.Adam()
+        self.initializer = tf.initializers.VarianceScaling(scale=0.1)
+        self.optimizer = tf.optimizers.Adam(learning_rate=self.learning_rate)
 
         # Init log manager and save manager.
         model_name = self.__get_model_name()
@@ -159,7 +159,7 @@ class BaseModel(metaclass=ABCMeta):
         """
         Output the loss of the epoch and total time used in the epoch,
         """
-        log = "Epoch %d used %f seconds. The epoch loss is: %s\n" % (epoch, epoch_time, epoch_loss.to_string())
+        log = "Epoch %d used %f seconds. The epoch loss is: %s" % (epoch, epoch_time, epoch_loss.to_string())
         self.log_manager.print_and_write(log)
 
     def __output_test_result(self, epoch, test_time, metrics: Metric):

@@ -6,7 +6,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from DataLayer.ClusterDatas.ClusterData import ClusterData
 from ModelLayertf2.BaseModel import BaseModel, Loss
-from ModelLayertf2.Strategy.NegativeTrainSampleStrategy import OtherClusterStrategyTrain
+from ModelLayertf2.Strategy.NegativeTrainSampleStrategy import OtherClusterStrategy, SameClusterStrategy
 
 
 class GNN(tf.keras.layers.Layer):
@@ -77,30 +77,18 @@ class GNN(tf.keras.layers.Layer):
 
 class FullGNN(layers.Layer):
     def __init__(self, initializer, eb_size,
-                 cluster_laplacian_matrices, cluster_bounds, entity_names,
+                 Ws, cluster_laplacian_matrices,
+                 cluster_bounds, entity_names,
                  dropout_flag, drop_out_ratio,
                  cluster_num, layer_num):
         super(FullGNN, self).__init__()
         self.layer_num = layer_num
         self.multi_GNN_layers = []
-        self.Ws = []
+        self.Ws = Ws
         for layer_no in range(layer_num):
             GNN_layers = []
-
-            W_sides = {
-                entity_name: tf.Variable(initializer([eb_size, eb_size]),
-                                         name="W_side_layer_{}_{}".format(layer_no, entity_name))
-                for entity_name in entity_names
-            }
-
-            W_dots = {
-                entity_name: tf.Variable(initializer([eb_size, eb_size]),
-                                         name="W_dot_layer_{}_{}".format(layer_no, entity_name))
-                for entity_name in entity_names
-            }
-
-            self.Ws.extend(list(W_sides.values()))
-            self.Ws.extend(list(W_dots.values()))
+            W_sides = Ws[layer_no]["W_sides"]
+            W_dots = Ws[layer_no]["W_dots"]
 
             for cluster_no in range(cluster_num):
                 LIs = {
@@ -152,17 +140,19 @@ class ClusterModel(BaseModel, ABC):
         self.cluster_dropout_flag = cluster_dropout_flag
         self.cluster_dropout_ratio = cluster_dropout_ratio
         self.gnn_layer_num = gnn_layer_num
-        self.neg_sample_strategy = OtherClusterStrategyTrain(self.data.cluster_track_ids)
+        self.other_cluster_strategy = OtherClusterStrategy(self.data.cluster_pos_train_tuples,
+                                                           self.data.cluster_track_ids)
+        self.same_cluster_strategy = SameClusterStrategy(self.data.cluster_pos_train_tuples, self.data.cluster_track_ids, self.data.pt)
 
     def _train_epoch(self, epoch):
         epoch_loss = Loss()
         epoch_start_time = time()
         for cluster_no in range(self.cluster_num):
-            cluster_loss: Loss = self._train_cluster(cluster_no)
+            cluster_loss: Loss = self._train_cluster(epoch, cluster_no)
             epoch_loss.add_loss(cluster_loss)
         epoch_end_time = time()
         return epoch_loss, epoch_end_time - epoch_start_time
 
     @abstractmethod
-    def _train_cluster(self, cluster_no):
+    def _train_cluster(self, epoch, pos_cluster_no):
         pass

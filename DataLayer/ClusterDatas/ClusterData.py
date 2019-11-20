@@ -11,7 +11,7 @@ class ClusterData(Data, ABC):
     def __init__(self, data_set_name, cluster_strategy, use_picked_data=True,
                  batch_size=256, epoch_times=4, is_debug_mode=False,
                  cluster_num=50, ut_alpha=1):
-        super().__init__(data_set_name, use_picked_data=use_picked_data, batch_size=batch_size, epoch_times=epoch_times,
+        super().__init__(data_set_name, use_picked_data=use_picked_data, epoch_times=epoch_times,
                          is_debug_mode=is_debug_mode)
         all_start_t = time()
         self.cluster_num = cluster_num
@@ -86,7 +86,7 @@ class ClusterData(Data, ABC):
     @abstractmethod
     def _gen_train_tuples(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
         """
-        Generate the train tuples of each cluster.
+        Read the train_data, generate the train tuples of each cluster.
         :return: A list of dicts. Each dict stores the training tuples of a cluster.
         """
         pass

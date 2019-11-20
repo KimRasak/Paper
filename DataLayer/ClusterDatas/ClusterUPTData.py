@@ -96,6 +96,8 @@ class ClusterUPTData(ClusterData):
 
     def _gen_train_tuples(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
         cluster_pos_train_tuples = [dict() for i in range(self.cluster_num)]
+        total_train_num = 0
+        same_cluster_num = {1: 0, 2: 0, 3: 0}
 
         for pos_train_tuple in cluster_pos_train_tuples:
             pos_train_tuple.update({
@@ -115,7 +117,19 @@ class ClusterUPTData(ClusterData):
             user_cluster_number, playlist_cluster_number, track_cluster_number = \
                 parts[global_uid], parts[global_pid], parts[global_tid]
 
-            return user_cluster_number == playlist_cluster_number == track_cluster_number, user_cluster_number
+            # Check how many entities are in the same cluster.
+            same_cluster_num = 0
+            if user_cluster_number == playlist_cluster_number:
+                if playlist_cluster_number == track_cluster_number or user_cluster_number == track_cluster_number:
+                    same_cluster_num = 3
+                else:
+                    same_cluster_num = 2
+            elif playlist_cluster_number == track_cluster_number or user_cluster_number == track_cluster_number:
+                same_cluster_num = 2
+            else:
+                same_cluster_num = 1
+
+            return user_cluster_number == playlist_cluster_number == track_cluster_number, user_cluster_number, same_cluster_num
 
         for entity_uid, user in train_data.items():
             for entity_pid, entity_tids in user.items():
@@ -128,8 +142,11 @@ class ClusterUPTData(ClusterData):
                         self._map_entity_id_to_global_id(entity_pid, data_set_num, self.ENTITY_PLAYLIST), \
                         self._map_entity_id_to_global_id(entity_tid, data_set_num, self.ENTITY_TRACK)
 
-                    are_same_cluster, cluster_number = ids_are_in_same_cluster(global_uid, global_pid, global_tid,
+                    are_same_cluster, cluster_number, same_num = ids_are_in_same_cluster(global_uid, global_pid, global_tid,
                                                                                parts)
+                    assert same_num != 0
+                    same_cluster_num[same_num] += 1
+
                     if not are_same_cluster:  # The connection exists.
                         continue
                     pos_train_tuple = cluster_pos_train_tuples[cluster_number]
@@ -138,6 +155,7 @@ class ClusterUPTData(ClusterData):
                         global_id_cluster_id_map[global_uid], global_id_cluster_id_map[global_pid], \
                         global_id_cluster_id_map[global_tid]
 
+                    total_train_num += 1
                     pos_train_tuple["length"] += 1
                     pos_train_tuple["user_entity_id"] = np.append(pos_train_tuple["user_entity_id"], entity_uid)
                     pos_train_tuple["playlist_entity_id"] = np.append(pos_train_tuple["playlist_entity_id"], entity_pid)
@@ -149,9 +167,16 @@ class ClusterUPTData(ClusterData):
                     pos_train_tuple["pos_track_cluster_id"] = np.append(pos_train_tuple["pos_track_cluster_id"],
                                                                         cluster_tid)
 
-        # for i in range(self.cluster_num):
-        #     train_tuples = cluster_pos_train_tuples[i]
-        #     assert train_tuples["length"] != 0
+        same_cluster_sum = 0
+        for k, v in same_cluster_num.items():
+            # The output shows that many interactions have 2 entities in the same cluster.
+            # So it's reasonable to train 2 merged clusters together, rather than vallina cluster-gcn.
+            print("same num: {}, num: {}".format(k, v))
+            same_cluster_sum += v
+
+        print("There are {} interactions of train set + test set, \n"
+              "where {} of them are in the train set."
+              "{} interactions of the train set are in the same cluster.".format(self.data_set_num.interaction, same_cluster_sum, total_train_num))
         return cluster_pos_train_tuples
 
     def _gen_cluster_track_ids(self, parts, data_set_num: DatasetNum, global_id_cluster_id_map):
@@ -234,10 +259,10 @@ class ClusterUPTData(ClusterData):
                     if user_cluster_number == playlist_cluster_number:
                         cluster_number = user_cluster_number
                         cluster_connections[cluster_number]["up"].append((cluster_uid, cluster_pid))
-                    elif playlist_cluster_number == track_cluster_number:
+                    if playlist_cluster_number == track_cluster_number:
                         cluster_number = playlist_cluster_number
                         cluster_connections[cluster_number]["pt"].append((cluster_pid, cluster_tid))
-                    elif user_cluster_number == track_cluster_number:
+                    if user_cluster_number == track_cluster_number:
                         cluster_number = user_cluster_number
                         cluster_connections[cluster_number]["ut"].append((cluster_uid, cluster_tid))
         return cluster_connections
