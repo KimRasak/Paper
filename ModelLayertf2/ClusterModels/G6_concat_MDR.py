@@ -29,7 +29,7 @@ class G6_concat_MDR(ClusterUPTModel):
         } for layer_no in range(self.gnn_layer_num)]
 
         self.full_GNN_layer = FullGNN(self.initializer, self.embedding_size,
-                                      Ws, self.data.clusters_laplacian_matrices,
+                                      Ws, self.data.single_cluster_laplacian_matrices,
                                       self.data.cluster_bounds, self.data.get_entity_names(),
                                       self.cluster_dropout_flag, self.cluster_dropout_ratio,
                                       self.data.cluster_num, self.gnn_layer_num)

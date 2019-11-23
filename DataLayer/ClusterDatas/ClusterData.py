@@ -27,6 +27,8 @@ class ClusterData(Data, ABC):
 
         # Extract training tuples from the cluster parts.
         self.global_id_cluster_id_map = self._gen_global_id_cluster_id_map(self.parts)
+        self.cluster_id_entity_id_map = self._gen_cluster_id_entity_id_map(self.parts, self.cluster_sizes, self.global_id_cluster_id_map)
+
         self.cluster_pos_train_tuples = self._gen_train_tuples(train_data, data_set_num, self.parts,
                                                                self.global_id_cluster_id_map)
 
@@ -37,15 +39,17 @@ class ClusterData(Data, ABC):
         self.test_pos_tuples = self._gen_test_pos_tuples(self.test_data,
                                                          data_set_num, self.global_id_cluster_id_map, self.parts)
 
-        self.cluster_connections = self._get_cluster_connections(train_data, data_set_num,
-                                                                 self.parts, self.global_id_cluster_id_map)
+        self.inter_cluster_connections = self._get_inter_cluster_connections(train_data, data_set_num,
+                                                                             self.parts, self.global_id_cluster_id_map)
+
+        self.all_cluster_connections = self._get_all_cluster_connections(train_data, data_set_num, self.parts, self.global_id_cluster_id_map)
 
         # Generate laplacian matrices.
         gen_laplacian_start_t = time()
-        self.clusters_laplacian_matrices: dict = self._gen_laplacian_matrices(self.cluster_pos_train_tuples,
-                                                                              self.cluster_sizes,
-                                                                              self.cluster_connections,
-                                                                              ut_alpha=ut_alpha)
+        self.single_cluster_laplacian_matrices: dict = self._gen_single_cluster_laplacian_matrices(self.cluster_pos_train_tuples,
+                                                                                                   self.cluster_sizes,
+                                                                                                   self.inter_cluster_connections,
+                                                                                                   ut_alpha=ut_alpha)
         gen_laplacian_end_t = time()
         print("Generating laplacian matrices used %f seconds." % (gen_laplacian_end_t - gen_laplacian_start_t))
 
@@ -79,7 +83,15 @@ class ClusterData(Data, ABC):
     @abstractmethod
     def _gen_global_id_cluster_id_map(self, parts):
         """
-        Generate an numpy array that stores the mappings from global id to cluster id.
+        Generate the map of global id -> cluster id.
+        That is, generate an numpy array that stores the mappings from global id to cluster id.
+        """
+        pass
+
+    @abstractmethod
+    def _gen_cluster_id_entity_id_map(self, parts, cluster_sizes, global_id_cluster_id_map):
+        """
+        Generate the map of cluster id -> entity id.
         """
         pass
 
@@ -96,6 +108,14 @@ class ClusterData(Data, ABC):
         """
         Map an entity id to a global id.
         :return: The related global id.
+        """
+        pass
+
+    @abstractmethod
+    def _map_global_id_to_entity_id(self, global_id, data_set_num: DatasetNum):
+        """
+        Map a global id to an entity id.
+        :return: The related entity id.
         """
         pass
 
@@ -117,9 +137,20 @@ class ClusterData(Data, ABC):
         pass
 
     @abstractmethod
-    def _get_cluster_connections(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
+    def _get_inter_cluster_connections(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
+        """
+        Generate the data storing the inter cluster connections.
+        """
         pass
 
     @abstractmethod
-    def _gen_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
+    def _get_all_cluster_connections(self, train_data, data_set_num: DatasetNum, parts, global_id_cluster_id_map):
+        """
+        Generate the data storing inter and intra cluster connections.
+        """
         pass
+
+    @abstractmethod
+    def _gen_single_cluster_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
+        pass
+

@@ -10,6 +10,9 @@ from ModelLayertf2.Strategy.NegativeTrainSampleStrategy import OtherClusterStrat
 
 
 class GNN(tf.keras.layers.Layer):
+    # A single GNN layer for each entities of the embeddings.
+    # The input is the composed embeddings of each entities.
+    # The layer will calculate gnn for each entities' embeddings.
     def __init__(self,
                  W_sides, W_dots,
                  LIs: dict, Ls: dict,
@@ -76,6 +79,9 @@ class GNN(tf.keras.layers.Layer):
 
 
 class FullGNN(layers.Layer):
+    # Defines the full GNN layers along a cluster.
+    # Given a cluster number and the initial embeddings of the cluster, it will process the embeddings through
+    # GNN layers and output the embeddings of the gragh.
     def __init__(self, initializer, eb_size,
                  Ws, cluster_laplacian_matrices,
                  cluster_bounds, entity_names,
@@ -84,11 +90,15 @@ class FullGNN(layers.Layer):
         super(FullGNN, self).__init__()
         self.layer_num = layer_num
         self.multi_GNN_layers = []
-        self.Ws = Ws
+        self.Ws = []
         for layer_no in range(layer_num):
             GNN_layers = []
             W_sides = Ws[layer_no]["W_sides"]
             W_dots = Ws[layer_no]["W_dots"]
+
+            # Add weights.
+            for entity_name in entity_names:
+                self.Ws.extend([W_sides[entity_name], W_dots[entity_name]])
 
             for cluster_no in range(cluster_num):
                 LIs = {
