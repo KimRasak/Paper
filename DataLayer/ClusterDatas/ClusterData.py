@@ -15,6 +15,7 @@ class ClusterData(Data, ABC):
                          is_debug_mode=is_debug_mode)
         all_start_t = time()
         self.cluster_num = cluster_num
+        self.ut_alpha = ut_alpha
 
         # Get cluster of the nodes.
         data_set_num = self.data_set_num
@@ -152,5 +153,47 @@ class ClusterData(Data, ABC):
 
     @abstractmethod
     def _gen_single_cluster_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes, cluster_connections, ut_alpha):
+        pass
+
+    @abstractmethod
+    def get_two_cluster_laplacian_matrices(self, small, large):
+        """
+        Get the laplacian matrices of two merged cluster.
+        small: The smaller cluster number.
+        large: The larger cluster number.
+        """
+        pass
+
+    def get_two_random_cno(self):
+        """
+        Get 2 random picked cluster numbers.
+        Must return cno2 > cno1,
+        so cno1 ∈ [0, cluster_num - 1)
+        cno2 ∈ [cno1 + 1, cluster_num - 1]
+        """
+        cno1 = np.random.randint(0, self.cluster_num - 1)
+        cno2 = np.random.randint(cno1 + 1, self.cluster_num)
+        return cno1, cno2
+
+    def get_another_random_cno(self, cno1):
+        """
+        Get 2 random picked cluster numbers, where cno1 is contained.
+        the first cluster number must be smaller than the second.
+        """
+        while True:
+            cno2 = np.random.randint(0, self.cluster_num)
+            if cno2 == cno1:
+                continue
+
+            if cno1 < cno2:
+                return cno1, cno2
+            else:  # cno2 < cno1
+                return cno2, cno1
+
+    @abstractmethod
+    def get_two_cluster_train_tuples(self, small, large):
+        """
+        Get the training tuples for two merged cluster.
+        """
         pass
 

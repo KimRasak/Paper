@@ -9,7 +9,18 @@ from ModelLayertf2.BaseModel import BaseModel, Loss
 from ModelLayertf2.Strategy.NegativeTrainSampleStrategy import OtherClusterStrategy, SameClusterStrategy
 
 
-class GNN(tf.keras.layers.Layer):
+def _convert_sp_mat_to_sp_tensor(X):
+    if X.getnnz() == 0:
+        print("add one.", X.shape)
+        return 0
+        # X[0, 0] = 1
+    coo = X.tocoo().astype(np.float32)
+    indices = np.mat([coo.row, coo.col]).transpose()
+
+    return tf.sparse.SparseTensor(indices, coo.data, dense_shape=X.shape)
+
+
+class GNNSingleCluster(tf.keras.layers.Layer):
     # A single GNN layer for each entities of the embeddings.
     # The input is the composed embeddings of each entities.
     # The layer will calculate gnn for each entities' embeddings.
@@ -17,7 +28,7 @@ class GNN(tf.keras.layers.Layer):
                  W_sides, W_dots,
                  LIs: dict, Ls: dict,
                  eb_size: int, bounds: dict, dropout_flag: bool, drop_out_ratio: float):
-        super(GNN, self).__init__()
+        super(GNNSingleCluster, self).__init__()
         self.bounds = bounds
         self.dropout_flag = dropout_flag
         self.dropout_ratio = drop_out_ratio
@@ -28,25 +39,14 @@ class GNN(tf.keras.layers.Layer):
 
         # Constant sparse laplacian matrix tensors.
         self.LIs = {
-            entity_name: GNN.__convert_sp_mat_to_sp_tensor(LI)
+            entity_name: _convert_sp_mat_to_sp_tensor(LI)
             for entity_name, LI in LIs.items()
         }
 
         self.Ls = {
-            entity_name: GNN.__convert_sp_mat_to_sp_tensor(L)
+            entity_name: _convert_sp_mat_to_sp_tensor(L)
             for entity_name, L in Ls.items()
         }
-
-    @staticmethod
-    def __convert_sp_mat_to_sp_tensor(X):
-        if X.getnnz() == 0:
-            print("add one.", X.shape)
-            return 0
-            # X[0, 0] = 1
-        coo = X.tocoo().astype(np.float32)
-        indices = np.mat([coo.row, coo.col]).transpose()
-
-        return tf.sparse.SparseTensor(indices, coo.data, dense_shape=X.shape)
 
     def call(self, ebs, **kwargs):
         train_flag = kwargs["train_flag"]
@@ -78,7 +78,7 @@ class GNN(tf.keras.layers.Layer):
         return variables
 
 
-class FullGNN(layers.Layer):
+class FullGNNSingleCluster(layers.Layer):
     # Defines the full GNN layers along a cluster.
     # Given a cluster number and the initial embeddings of the cluster, it will process the embeddings through
     # GNN layers and output the embeddings of the gragh.
@@ -87,7 +87,7 @@ class FullGNN(layers.Layer):
                  cluster_bounds, entity_names,
                  dropout_flag, drop_out_ratio,
                  cluster_num, layer_num):
-        super(FullGNN, self).__init__()
+        super(FullGNNSingleCluster, self).__init__()
         self.layer_num = layer_num
         self.multi_GNN_layers = []
         self.Ws = []
@@ -110,7 +110,7 @@ class FullGNN(layers.Layer):
                     for entity_name in entity_names
                 }
                 bounds = cluster_bounds[cluster_no]
-                GNN_layers.append(GNN(W_sides, W_dots, LIs, Ls, eb_size, bounds, dropout_flag, drop_out_ratio))
+                GNN_layers.append(GNNSingleCluster(W_sides, W_dots, LIs, Ls, eb_size, bounds, dropout_flag, drop_out_ratio))
             self.multi_GNN_layers.append(GNN_layers)
 
     def call(self, initial_ebs, **kwargs):
@@ -123,6 +123,127 @@ class FullGNN(layers.Layer):
         for layer_no in range(self.layer_num):
             GNN_layer = self.multi_GNN_layers[layer_no][cluster_no]
             new_ebs = GNN_layer(old_ebs, train_flag=train_flag)
+            layers_ebs.append(new_ebs)
+
+            # Update variable.
+            old_ebs = new_ebs
+        agg = tf.concat(layers_ebs, axis=0)
+        return agg
+
+    def get_reg_loss(self):
+        reg_loss = 0
+        for W in self.Ws:
+            reg_loss += tf.nn.l2_loss(W)
+        return reg_loss
+
+    def get_trainable_variables(self):
+        return self.Ws
+
+
+class PureGNN(tf.keras.layers.Layer):
+    # A single pure GNN layer for each entities of the embeddings.
+    # The input is the composed embeddings of each entities.
+    # All Needed data should be given when being called.
+    # The layer will calculate gnn for each entities' embeddings.
+    def __init__(self,
+                 W_sides, W_dots,
+                 dropout_flag: bool, drop_out_ratio: float):
+        super(PureGNN, self).__init__()
+        self.dropout_flag = dropout_flag
+        self.dropout_ratio = drop_out_ratio
+
+        # Tensor variables.
+        self.W_sides = W_sides
+        self.W_dots = W_dots
+
+    def convert_to_tensors(self, LIs, Ls):
+        # Constant sparse laplacian matrix tensors.
+        self.LIs = {
+            entity_name: _convert_sp_mat_to_sp_tensor(LI)
+            for entity_name, LI in LIs.items()
+        }
+        self.Ls = {
+            entity_name: _convert_sp_mat_to_sp_tensor(L)
+            for entity_name, L in Ls.items()
+        }
+
+    def call(self, ebs, **kwargs):
+        train_flag = kwargs["train_flag"]
+        bounds = kwargs["bounds"]
+        LIs = kwargs["LIs"]
+        Ls = kwargs["Ls"]
+        self.convert_to_tensors(LIs, Ls)
+
+        folds = []
+        for entity_name, (start, end) in bounds.items():
+            W_side = self.W_sides[entity_name]
+            W_dot = self.W_dots[entity_name]
+            entity_emb = ebs[start:end]
+
+            LI_side_embed = tf.sparse.sparse_dense_matmul(self.LIs[entity_name], ebs)
+            L_side_embed = tf.sparse.sparse_dense_matmul(self.Ls[entity_name], ebs)
+
+            sum_embed = tf.matmul(LI_side_embed, W_side)
+            dot_embed = tf.matmul(tf.multiply(L_side_embed, entity_emb), W_dot)
+
+            fold = tf.nn.leaky_relu(sum_embed + dot_embed)
+            folds.append(fold)
+        agg = tf.concat(folds, axis=0)
+        if train_flag and self.dropout_flag:
+            dropout_embed = tf.nn.dropout(agg, self.dropout_ratio)
+            return dropout_embed
+        else:
+            return agg
+
+    def get_trainable_variables(self):
+        variables = []
+        variables.extend(list(self.W_sides.values()))
+        variables.extend(list(self.W_dots.values()))
+        return variables
+
+
+class PureFullGNN(layers.Layer):
+    # Defines the full GNN layers.
+    # When called, should be given all needed data, like laplacian matrices, initial embeddings.
+    # Process GNN layer on the initial embeddings.
+    def __init__(self,
+                 Ws, entity_names,
+                 dropout_flag, drop_out_ratio,
+                 layer_num):
+        super(PureFullGNN, self).__init__()
+        self.entity_names = entity_names
+        self.layer_num = layer_num
+        self.multi_GNN_layers = []
+        self.Ws = []
+        for layer_no in range(layer_num):
+            GNN_layers = []
+            W_sides = Ws[layer_no]["W_sides"]
+            W_dots = Ws[layer_no]["W_dots"]
+
+            # Add weights.
+            for entity_name in entity_names:
+                self.Ws.extend([W_sides[entity_name], W_dots[entity_name]])
+            self.multi_GNN_layers.append(PureGNN(W_sides, W_dots, dropout_flag, drop_out_ratio))
+
+    def call(self, initial_ebs, **kwargs):
+        train_flag = kwargs["train_flag"]
+        laplacian_matrices = kwargs["laplacian_matrices"]
+        bounds = kwargs["bounds"]
+
+        # initial_ebs = self.cluster_initial_ebs[cluster_no]
+        old_ebs = initial_ebs
+        layers_ebs = []
+        for layer_no in range(self.layer_num):
+            GNN_layer = self.multi_GNN_layers[layer_no]
+            Ls = {
+                entity_name: laplacian_matrices[entity_name]["L"]
+                for entity_name in self.entity_names
+            }
+            LIs = {
+                entity_name: laplacian_matrices[entity_name]["LI"]
+                for entity_name in self.entity_names
+            }
+            new_ebs = GNN_layer(old_ebs, train_flag=train_flag, Ls=Ls, LIs=LIs, bounds=bounds)
             layers_ebs.append(new_ebs)
 
             # Update variable.
