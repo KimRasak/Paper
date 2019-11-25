@@ -45,14 +45,14 @@ class ClusterData(Data, ABC):
 
         self.all_cluster_connections = self._get_all_cluster_connections(train_data, data_set_num, self.parts, self.global_id_cluster_id_map)
 
-        # Generate laplacian matrices.
+        # Generate laplacian matrices for each single cluster.
         gen_laplacian_start_t = time()
         self.single_cluster_laplacian_matrices: dict = self._gen_single_cluster_laplacian_matrices(self.cluster_pos_train_tuples,
                                                                                                    self.cluster_sizes,
                                                                                                    self.inter_cluster_connections,
                                                                                                    ut_alpha=ut_alpha)
         gen_laplacian_end_t = time()
-        print("Generating laplacian matrices used %f seconds." % (gen_laplacian_end_t - gen_laplacian_start_t))
+        print("Generating single laplacian matrices used %f seconds." % (gen_laplacian_end_t - gen_laplacian_start_t))
 
         # Print total time used.
         all_end_t = time()

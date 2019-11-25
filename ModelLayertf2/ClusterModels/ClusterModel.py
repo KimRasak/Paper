@@ -172,21 +172,28 @@ class PureGNN(tf.keras.layers.Layer):
         bounds = kwargs["bounds"]
         LIs = kwargs["LIs"]
         Ls = kwargs["Ls"]
+        if "dot"  in kwargs:
+            dot = True
+        else:
+            dot = kwargs["dot"]
+
         self.convert_to_tensors(LIs, Ls)
 
         folds = []
         for entity_name, (start, end) in bounds.items():
             W_side = self.W_sides[entity_name]
-            W_dot = self.W_dots[entity_name]
-            entity_emb = ebs[start:end]
-
             LI_side_embed = tf.sparse.sparse_dense_matmul(self.LIs[entity_name], ebs)
-            L_side_embed = tf.sparse.sparse_dense_matmul(self.Ls[entity_name], ebs)
-
             sum_embed = tf.matmul(LI_side_embed, W_side)
-            dot_embed = tf.matmul(tf.multiply(L_side_embed, entity_emb), W_dot)
 
-            fold = tf.nn.leaky_relu(sum_embed + dot_embed)
+            if dot:
+                entity_emb = ebs[start:end]
+                L_side_embed = tf.sparse.sparse_dense_matmul(self.Ls[entity_name], ebs)
+                W_dot = self.W_dots[entity_name]
+                dot_embed = tf.matmul(tf.multiply(L_side_embed, entity_emb), W_dot)
+                fold = tf.nn.relu(sum_embed + dot_embed)
+            else:
+                fold = tf.nn.relu(sum_embed)
+            fold = tf.nn.relu(sum_embed)
             folds.append(fold)
         agg = tf.concat(folds, axis=0)
         if train_flag and self.dropout_flag:

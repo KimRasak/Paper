@@ -198,4 +198,4 @@ def gen_dataset(dataset_name):
 
 
 if __name__ == '__main__':
-    gen_dataset(DatasetName.THIRTY_MUSIC)
+    gen_dataset(DatasetName.AOTM)

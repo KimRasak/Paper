@@ -41,8 +41,9 @@ class G6_concat_MDR(ClusterUPTModel):
 
         stored = {
             "cluster_ebs": self.cluster_initial_ebs,
-            "full_GNN": self.full_single_GNN_layer,
-            "MDR": self.MDR_layer
+            "single_full_GNN": self.full_single_GNN_layer,
+            "MDR": self.MDR_layer,
+            "pure_full_GNN": self.pure_full_GNN_layer
         }
 
         return stored
@@ -122,11 +123,28 @@ class G6_concat_MDR(ClusterUPTModel):
 
     def _two_cluster_train_tuples(self, tape, epoch, cno1):
         small_cno, large_cno = self.data.get_another_random_cno(cno1)
+        if epoch == cno1:
+            print("Training cluster %d and %d" % (small_cno, large_cno))
+
+        t0 = time()
+        laplacian_matrices, bounds = self.data.get_two_cluster_laplacian_matrices(small_cno, large_cno)
+        t1 = time()
+        train_tuples = self.data.get_two_cluster_train_tuples(small_cno, large_cno)
+        t2 = time()
+        if epoch == cno1:
+            print("Generating laplaicna matrices used %f seconds and sampling used %f seconds" % (t1 - t0, t2 - t1))
+
         init_ebs1 = self.cluster_initial_ebs[small_cno]
         init_ebs2 = self.cluster_initial_ebs[large_cno]
-        init_ebs = tf.concat([init_ebs1, init_ebs2], 0)
-        laplacian_matrices, bounds = self.data.get_two_cluster_laplacian_matrices(small_cno, large_cno)
-        train_tuples = self.data.get_two_cluster_train_tuples(small_cno, large_cno)
+        bound1 = self.data.cluster_bounds[small_cno]
+        bound2 = self.data.cluster_bounds[large_cno]
+        init_ebs_list = []
+        for entity_name in self.data.get_entity_names():
+            s1, e1 = bound1[entity_name]
+            init_ebs_list.append(init_ebs1[s1:e1])
+            s2, e2 = bound2[entity_name]
+            init_ebs_list.append(init_ebs2[s2:e2])
+        init_ebs = tf.concat(init_ebs_list, 0)
 
         gnn_ebs = self.pure_full_GNN_layer(init_ebs, laplacian_matrices=laplacian_matrices, bounds=bounds,
                                  train_flag=True)
@@ -137,7 +155,7 @@ class G6_concat_MDR(ClusterUPTModel):
 
         assert len(train_tuples["user_cluster_id"]) == len(train_tuples["playlist_cluster_id"]) \
                == len(train_tuples["pos_track_cluster_id"]) == len(train_tuples["pos_track_entity_id"]) \
-               == len(train_tuples["neg_track_cluster_id"])
+               == len(train_tuples["neg_track_cluster_id"]) == train_tuples["length"]
 
         pos_scores = self.MDR_layer({
             "user_ebs": user_ebs,
