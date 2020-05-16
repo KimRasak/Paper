@@ -1,5 +1,4 @@
 import gzip
-import cjson
 import json
 import re
 import time
@@ -117,8 +116,6 @@ def read_raw_30music_playlists(filepath):
 def read_raw_aotm_playlists(filepath):
     # Read 'aotm' raw playlist data and return structured data.
     with open(filepath, 'r') as file_desc:
-        with gzip.open('aotm2011_playlists.json.gz', 'r') as file_desc:
-            playlists = cjson.decode(file_desc.read())
         raw_playlists = json.loads(file_desc.read())
         data = {}
 

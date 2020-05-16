@@ -59,7 +59,7 @@ def split_train_test(playlist_data: dict, train_file_path, test_file_path, propo
 
 def main():
     # Read whole playlist data set.
-    data_set_name = DatasetName.THIRTY_MUSIC
+    data_set_name = DatasetName.AOTM
     whole_playlist_path = WHOLE_PLAYLIST_PATH[data_set_name]
     whole_playlist_data = data_file_layer.read_playlist_data(whole_playlist_path)
 

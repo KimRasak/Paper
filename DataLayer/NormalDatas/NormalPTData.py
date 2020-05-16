@@ -6,22 +6,36 @@ import scipy.sparse as sp
 
 
 class NormalPTData(NormalData):
+    def _get_laplacian_matrices(self, train_data, data_set_num: DatasetNum):
+        # The neighbourhood matrix will be [P T] vertically.
+        playlist_num = data_set_num.playlist
+        track_num = data_set_num.track
+        total_size = playlist_num + track_num
+
+        # Init laplacian matrix.
+        L_matrix = sp.dok_matrix((total_size, total_size), dtype=np.float64)
+        track_offset = playlist_num
+        for pid, tids in self.pt.items():
+            for tid in tids:
+                x = pid
+                y = tid + track_offset
+                L_matrix[x, y] = 1
+                L_matrix[y, x] = 1
+        LI_matrix = L_matrix + sp.eye(L_matrix.shape[0])
+        return {
+            "L": L_matrix,
+            "LI": LI_matrix
+        }
+
     def _get_data_sum(self, data_set_num: DatasetNum):
         return data_set_num.playlist + data_set_num.track
 
     def _init_relation_dict(self):
         # init up dict and pt dict.
-        self.up = dict()
         self.pt = dict()
 
         for uid, user in self.train_data.items():
             for pid, tids in user.items():
-                # Add element to up
-                if uid not in self.up:
-                    self.up[uid] = np.array([pid])
-                else:
-                    self.up[uid] = np.append(self.up[uid], pid)
-
                 # Add element to pt
                 assert pid not in self.pt
                 self.pt[pid] = np.array(tids)
@@ -33,12 +47,10 @@ class NormalPTData(NormalData):
                 self.test_pt[pid] = tids
 
     def _init_relation_matrix(self):
-        self.R_up = sp.dok_matrix((self.data_set_num.user, self.data_set_num.playlist), dtype=np.float64)
         self.R_pt = sp.dok_matrix((self.data_set_num.playlist, self.data_set_num.track), dtype=np.float64)
 
         for uid, user in self.train_data.items():
             for pid, tids in user.items():
-                self.R_up[uid, pid] = 1
                 for tid in tids:
                     self.R_pt[pid, tid] = 1
 
@@ -60,17 +72,21 @@ class NormalPTData(NormalData):
         for batch_no in range(self._get_batch_num()):
             batch = {
                 "size": self.batch_size,
-                "pids": np.array([np.random.randint(0, self.data_set_num.playlist) for _ in range(self.batch_size)], dtype=int),
-                "pos_tids": np.array([], dtype=int),
-                "neg_tids": np.array([], dtype=int)
+                "pids": [np.random.randint(0, self.data_set_num.playlist) for _ in range(self.batch_size)],
+                "pos_tids": [],
+                "neg_tids": []
             }  # Only "pos_tids" and "neg_tids" need to be initialized.
 
             for pid in batch["playlists"]:
                 pos_tid = np.random.choice(self.pt[pid], 1)[0]
                 neg_tid = __sample_neg_track_for_playlist(pid)
 
-                batch["pos_tids"] = np.append(batch["pos_tids"], pos_tid)
-                batch["neg_tids"] = np.append(batch["neg_tids"], neg_tid)
+                batch["pos_tids"].append(pos_tid)
+                batch["neg_tids"].append(neg_tid)
+
+            for k, v in batch.items():
+                if isinstance(v, list):
+                    batch[k] = np.array(batch[k])
 
             yield batch
 

@@ -44,7 +44,7 @@ class Data(metaclass=ABCMeta):
             print("{pick} == %r, you're using a complete dataset" % use_picked_data)
 
         # Read number of entities in the data set.
-        self.data_set_num = self.__read_count_file(count_file_path)
+        self.data_set_num: DatasetNum = self.__read_count_file(count_file_path)
         self.sum = self._get_data_sum(self.data_set_num)
 
         # Read train data for training.
@@ -82,21 +82,6 @@ class Data(metaclass=ABCMeta):
         :return: null
         """
         pass
-
-    @staticmethod
-    def __gen_test_list(test_data: dict):
-        """Not used"""
-        t_test_start = time()
-        test_list = []
-        # Iterate each u-p-t pair and add them to the test list.
-        for uid, user in test_data.items():
-            for pid, tids in user.items():
-                for tid in tids:
-                    tuple = [uid, pid, tid]
-                    test_list.append(tuple)
-        t_test_end = time()
-        print("Generate test list used %2f seconds." % (t_test_end - t_test_start))
-        return test_list
 
     @abstractmethod
     def sample_negative_test_track_ids(self, uid, pid):

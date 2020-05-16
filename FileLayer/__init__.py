@@ -9,6 +9,7 @@ import os
 class DatasetName:
     THIRTY_MUSIC = "30music"
     AOTM = "aotm"
+    RATING = "ratings"
 
 
 # Define paths of raw data.
@@ -27,6 +28,7 @@ RAW_PLAYLIST_PATH = {
 DATA_BASE_PATH = os.path.abspath("./data")
 THIRTY_MUSIC_PATH = os.path.join(DATA_BASE_PATH, DatasetName.THIRTY_MUSIC)
 AOTM_PATH = os.path.join(DATA_BASE_PATH, DatasetName.AOTM)
+RATING_PATH = os.path.join(DATA_BASE_PATH, DatasetName.RATING)
 
 PLAYLIST_FILE_NAME = "playlist.txt"
 COUNT_FILE_NAME = "count.txt"
@@ -41,7 +43,8 @@ WHOLE_PLAYLIST_PATH = {
 
 WHOLE_COUNT_FILE_PATH = {
     DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, COUNT_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, COUNT_FILE_NAME)
+    DatasetName.AOTM: os.path.join(AOTM_PATH, COUNT_FILE_NAME),
+    DatasetName.RATING: os.path.join(RATING_PATH, COUNT_FILE_NAME)
 }
 
 PICK_PLAYLIST_PATH = {
@@ -54,6 +57,7 @@ PICK_COUNT_FILE_PATH = {
     DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_COUNT_FILE_NAME)
 }
 
+# Define paths for train file and test file.
 TRAIN_FILE_NAME = "train.txt"
 TEST_FILE_NAME = "test.txt"
 
@@ -62,25 +66,29 @@ PICK_TEST_FILE_NAME = "pick_test.txt"
 
 TRAIN_FILE_PATH = {
     DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, TRAIN_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, TRAIN_FILE_NAME)
+    DatasetName.AOTM: os.path.join(AOTM_PATH, TRAIN_FILE_NAME),
+    DatasetName.RATING: os.path.join(RATING_PATH, TRAIN_FILE_NAME)
 }
 
 
 TEST_FILE_PATH = {
     DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, TEST_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, TEST_FILE_NAME)
+    DatasetName.AOTM: os.path.join(AOTM_PATH, TEST_FILE_NAME),
+    DatasetName.RATING: os.path.join(RATING_PATH, TEST_FILE_NAME)
 }
 
 
 PICK_TRAIN_FILE_PATH = {
     DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PICK_TRAIN_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_TRAIN_FILE_NAME)
+    DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_TRAIN_FILE_NAME),
+    DatasetName.RATING: os.path.join(RATING_PATH, PICK_TRAIN_FILE_NAME)
 }
 
 
 PICK_TEST_FILE_PATH = {
     DatasetName.THIRTY_MUSIC: os.path.join(THIRTY_MUSIC_PATH, PICK_TEST_FILE_NAME),
-    DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_TEST_FILE_NAME)
+    DatasetName.AOTM: os.path.join(AOTM_PATH, PICK_TEST_FILE_NAME),
+    DatasetName.RATING: os.path.join(RATING_PATH, PICK_TEST_FILE_NAME)
 }
 
 # Define paths of cluster files.

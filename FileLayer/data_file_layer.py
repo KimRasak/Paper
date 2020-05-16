@@ -1,6 +1,6 @@
 import numpy as np
 from FileLayer import TRAIN_FILE_PATH, PICK_TRAIN_FILE_PATH, TEST_FILE_PATH, PICK_TEST_FILE_PATH, \
-    COUNT_FILE_NAME, PICK_COUNT_FILE_PATH, WHOLE_COUNT_FILE_PATH
+    COUNT_FILE_NAME, PICK_COUNT_FILE_PATH, WHOLE_COUNT_FILE_PATH, DatasetName
 from Common import DatasetNum
 
 
@@ -31,6 +31,44 @@ def get_count_file_path(use_picked_data, data_set_name):
         return PICK_COUNT_FILE_PATH[data_set_name]
 
 
+# Define read functions for dataset "rating"
+def read_rating_data(path):
+    data = dict()
+    with open(path) as f:
+        head_line = f.readline()
+        line = f.readline()
+        while line:
+            items = line.split(" ")
+            user_id = int(items[0])
+            # Prepare user dict.
+            if user_id not in data:
+                data[user_id] = dict()
+
+            assert items[-1] == "\n"
+            for pair in items[1:-1]:
+                # Extract id and score from str.
+                assert pair[0] == "(" and pair[-1] == ")"
+                splits = pair[1:-1].split(",")
+                item_id, score = int(splits[0]), int(splits[1])
+
+                # Fill in data.
+                data[user_id][item_id] = score
+
+            line = f.readline()
+    return data
+
+
+def read_rating_count(path):
+    with open(path) as f:
+        f.readline()
+        user_num = int(f.readline())
+        f.readline()
+        item_num = int(f.readline())
+
+    return DatasetNum(1, user_num, item_num, 1)
+
+
+# read/write functions for general data.
 def write_playlist_data(playlist_data: dict, playlist_data_path):
     """
     Write playlist data to file.
@@ -52,6 +90,10 @@ def read_playlist_data(playlist_data_path):
     """
     Read playlist data from file. All ids in the file must be continuous starting from 0.
     """
+    # Special read function for dataset rating.
+    if playlist_data_path == TRAIN_FILE_PATH[DatasetName.RATING] or playlist_data_path == TEST_FILE_PATH[DatasetName.RATING]:
+        return read_rating_data(playlist_data_path)
+
     data = dict()
     with open(playlist_data_path) as f:
         head_title = f.readline()  # title: "user_id playlist_id track_ids"
@@ -89,6 +131,10 @@ def write_count_file(dataset_num: DatasetNum, count_file_path):
 
 
 def read_count_file(count_file_path):
+    # Special read function for dataset rating.
+    if count_file_path == WHOLE_COUNT_FILE_PATH[DatasetName.RATING]:
+        return read_rating_count(count_file_path)
+
     # Read the number of entities of the file.
     with open(count_file_path) as f:
         f.readline()

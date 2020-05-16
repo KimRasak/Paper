@@ -5,19 +5,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 from DataLayer.ClusterDatas.ClusterData import ClusterData
-from ModelLayertf2.BaseModel import BaseModel, Loss
+from ModelLayertf2 import Metric
+from ModelLayertf2.BaseModel import BaseModel, Loss, _convert_sp_mat_to_sp_tensor
 from ModelLayertf2.Strategy.NegativeTrainSampleStrategy import OtherClusterStrategy, SameClusterStrategy
-
-
-def _convert_sp_mat_to_sp_tensor(X):
-    if X.getnnz() == 0:
-        print("add one.", X.shape)
-        return 0
-        # X[0, 0] = 1
-    coo = X.tocoo().astype(np.float32)
-    indices = np.mat([coo.row, coo.col]).transpose()
-
-    return tf.sparse.SparseTensor(indices, coo.data, dense_shape=X.shape)
 
 
 class GNNSingleCluster(tf.keras.layers.Layer):
@@ -294,3 +284,8 @@ class ClusterModel(BaseModel, ABC):
     @abstractmethod
     def _train_cluster(self, epoch, pos_cluster_no):
         pass
+
+    def _output_test_result(self, epoch, test_time, metrics: Metric):
+        print("hrs_10: {}, ndcgs_10: {}".format(metrics.get_avg_hr(10), metrics.get_avg_ndcg(10)))
+        self.log_manager.write("Test in epoch {} used {} seconds.\n".format(epoch, test_time))
+        self.log_manager.write(metrics.to_string())

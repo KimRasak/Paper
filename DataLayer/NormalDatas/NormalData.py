@@ -7,10 +7,13 @@ import FileLayer.data_file_layer as data_file_layer
 
 class NormalData(Data):
     def __init__(self, data_set_name, use_picked_data=True,
-                 epoch_times=4, is_debug_mode=False, batch_size=256):
+                 epoch_times=4, is_debug_mode=False, batch_size=256, use_laplacian=False):
         super().__init__(data_set_name, use_picked_data,
                  epoch_times, is_debug_mode)
         self.batch_size = batch_size
+        if use_laplacian:
+            self.laplacian_matrices = self._get_laplacian_matrices(self.train_data, self.data_set_num)
+            pass
 
     def _init_relation_data(self, train_data):
         """
@@ -35,6 +38,10 @@ class NormalData(Data):
 
     @abstractmethod
     def get_batches(self):
+        pass
+
+    @abstractmethod
+    def _get_laplacian_matrices(self, train_data, data_set_num):
         pass
 
 

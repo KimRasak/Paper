@@ -11,6 +11,16 @@ from FileLayer.log_file_layer import LogManager
 from ModelLayertf2 import Metric
 
 
+def _convert_sp_mat_to_sp_tensor(X):
+    if X.getnnz() == 0:
+        print("add one.", X.shape)
+        return 0
+        # X[0, 0] = 1
+    coo = X.tocoo().astype(np.float32)
+    indices = np.mat([coo.row, coo.col]).transpose()
+
+    return tf.sparse.SparseTensor(indices, coo.data, dense_shape=X.shape)
+
 class Loss:
     reg_loss: np.float
     mf_loss: np.float
@@ -144,7 +154,7 @@ class BaseModel(metaclass=ABCMeta):
             epoch_loss, epoch_time = self._train_epoch(epoch)
             metrics, test_time = self._test(epoch)
             self.__output_epoch_message(epoch, epoch_time, epoch_loss)
-            self.__output_test_result(epoch, test_time, metrics)
+            self._output_test_result(epoch, test_time, metrics)
             self.__save_model()
 
     @abstractmethod
@@ -162,10 +172,9 @@ class BaseModel(metaclass=ABCMeta):
         log = "Epoch %d used %f seconds. The epoch loss is: %s" % (epoch, epoch_time, epoch_loss.to_string())
         self.log_manager.print_and_write(log)
 
-    def __output_test_result(self, epoch, test_time, metrics: Metric):
-        print("hrs_10: {}, ndcgs_10: {}".format(metrics.get_avg_hr(10), metrics.get_avg_ndcg(10)))
-        self.log_manager.write("Test in epoch {} used {} seconds.\n".format(epoch, test_time))
-        self.log_manager.write(metrics.to_string())
+    @abstractmethod
+    def _output_test_result(self, epoch, test_time, metrics: Metric):
+        pass
 
     def __save_model(self):
         # if np.isnan(epoch_loss.get_total_loss()):

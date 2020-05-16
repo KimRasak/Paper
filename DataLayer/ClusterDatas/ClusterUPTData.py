@@ -375,6 +375,7 @@ class ClusterUPTData(ClusterData):
 
     def _gen_single_cluster_laplacian_matrices(self, cluster_pos_train_tuples, cluster_sizes,
                                                single_cluster_connections, ut_alpha):
+        ## TODO: L_matrix[x, y] = 1代码有误！
         clusters_laplacian_matrices = [dict() for _ in range(self.cluster_num)]
 
         # Init clusters_laplacian_matrices
@@ -387,17 +388,17 @@ class ClusterUPTData(ClusterData):
             L_matrix = sp.dok_matrix((cluster_total_size, cluster_total_size), dtype=np.float64)
             for cluster_uid, cluster_pid in connections["up"]:
                 x = cluster_uid
-                y = cluster_pid
+                y = cluster_pid + cluster_size["u"]
                 L_matrix[x, y] = 1
                 L_matrix[y, x] = 1
             for cluster_pid, cluster_tid in connections["pt"]:
-                x = cluster_pid
-                y = cluster_tid
+                x = cluster_pid + cluster_size["u"]
+                y = cluster_tid + cluster_size["u"] + cluster_size["p"]
                 L_matrix[x, y] = 1
                 L_matrix[y, x] = 1
             for cluster_uid, cluster_tid in connections["ut"]:
                 x = cluster_uid
-                y = cluster_tid
+                y = cluster_tid + cluster_size["u"] + cluster_size["p"]
                 L_matrix[x, y] = 1 * ut_alpha
                 L_matrix[y, x] = 1 * ut_alpha
 
